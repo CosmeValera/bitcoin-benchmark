@@ -100,7 +100,7 @@ th {
 
 td {
   padding: 0.6rem 0.75rem;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+  border-bottom: 1px solid var(--td-border);
   white-space: nowrap;
 }
 
@@ -128,7 +128,7 @@ td {
 }
 
 .negative {
-  color: #ef4444;
+  color: var(--red);
 }
 
 .errors {
@@ -137,7 +137,7 @@ td {
 
 .error-line {
   font-size: 0.8rem;
-  color: #f59e0b;
+  color: var(--warning);
   margin: 0.25rem 0;
 }
 

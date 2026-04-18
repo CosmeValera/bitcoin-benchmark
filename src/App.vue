@@ -1,14 +1,23 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
+import { useTheme } from '@/composables/useTheme'
+
+const { theme, toggle } = useTheme()
 </script>
 
 <template>
   <div class="app">
     <header>
       <div class="header-content">
-        <div class="logo">
-          <span class="logo-icon">₿</span>
-          <h1>Bitcoin Benchmark</h1>
+        <div class="header-top">
+          <div class="logo">
+            <span class="logo-icon">₿</span>
+            <h1>Bitcoin Benchmark</h1>
+          </div>
+          <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
+            <span v-if="theme === 'dark'">&#9788;</span>
+            <span v-else>&#9790;</span>
+          </button>
         </div>
         <p class="subtitle">
           Compare Bitcoin against treasury stocks, preferred shares, and market indices using real historical data
@@ -48,11 +57,37 @@ header {
   margin: 0 auto;
 }
 
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
 .logo {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  margin-bottom: 0.5rem;
+}
+
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.theme-toggle:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
 }
 
 .logo-icon {

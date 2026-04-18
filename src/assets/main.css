@@ -1,4 +1,5 @@
-:root {
+:root,
+[data-theme='dark'] {
   --bg: #0f172a;
   --card-bg: #1e293b;
   --card-inner-bg: #0f172a;
@@ -10,6 +11,42 @@
   --accent-glow: rgba(247, 147, 26, 0.2);
   --input-bg: #0f172a;
   --green: #22c55e;
+  --chart-legend: #94a3b8;
+  --chart-tick: #64748b;
+  --chart-grid: rgba(148, 163, 184, 0.06);
+  --chart-tooltip-bg: #1e293b;
+  --chart-tooltip-title: #e2e8f0;
+  --chart-tooltip-body: #cbd5e1;
+  --chart-tooltip-border: #334155;
+  --td-border: rgba(148, 163, 184, 0.08);
+  --red: #ef4444;
+  --warning: #f59e0b;
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --card-inner-bg: #f1f5f9;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --accent: #f7931a;
+  --accent-hover: #e8860f;
+  --accent-glow: rgba(247, 147, 26, 0.15);
+  --input-bg: #ffffff;
+  --green: #16a34a;
+  --chart-legend: #64748b;
+  --chart-tick: #94a3b8;
+  --chart-grid: rgba(100, 116, 139, 0.1);
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-title: #0f172a;
+  --chart-tooltip-body: #334155;
+  --chart-tooltip-border: #e2e8f0;
+  --td-border: rgba(100, 116, 139, 0.1);
+  --red: #dc2626;
+  --warning: #d97706;
+  color-scheme: light;
 }
 
 *,

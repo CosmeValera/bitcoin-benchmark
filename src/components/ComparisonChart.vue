@@ -13,10 +13,16 @@ import {
   Filler,
 } from 'chart.js'
 import { useComparisonStore } from '@/stores/comparison'
+import { useTheme } from '@/composables/useTheme'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
 const store = useComparisonStore()
+const { theme } = useTheme()
+
+function cssVar(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+}
 
 const chartData = computed(() => {
   if (store.assetsData.length === 0) return { labels: [], datasets: [] }
@@ -61,54 +67,59 @@ const chartData = computed(() => {
   return { labels, datasets }
 })
 
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  interaction: {
-    mode: 'index' as const,
-    intersect: false,
-  },
-  plugins: {
-    legend: {
-      position: 'top' as const,
-      labels: {
-        color: '#94a3b8',
-        usePointStyle: true,
-        pointStyle: 'circle',
-        padding: 16,
-        font: { size: 12 },
-      },
+const chartOptions = computed(() => {
+  // Access theme.value so this recomputes on theme change
+  void theme.value
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
     },
-    tooltip: {
-      backgroundColor: '#1e293b',
-      titleColor: '#e2e8f0',
-      bodyColor: '#cbd5e1',
-      borderColor: '#334155',
-      borderWidth: 1,
-      callbacks: {
-        label: (ctx: any) => {
-          const val = ctx.parsed.y
-          const sign = val >= 0 ? '+' : ''
-          return ` ${ctx.dataset.label}: ${sign}${val.toFixed(1)}%`
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          color: cssVar('--chart-legend'),
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 16,
+          font: { size: 12 },
+        },
+      },
+      tooltip: {
+        backgroundColor: cssVar('--chart-tooltip-bg'),
+        titleColor: cssVar('--chart-tooltip-title'),
+        bodyColor: cssVar('--chart-tooltip-body'),
+        borderColor: cssVar('--chart-tooltip-border'),
+        borderWidth: 1,
+        callbacks: {
+          label: (ctx: any) => {
+            const val = ctx.parsed.y
+            const sign = val >= 0 ? '+' : ''
+            return ` ${ctx.dataset.label}: ${sign}${val.toFixed(1)}%`
+          },
         },
       },
     },
-  },
-  scales: {
-    x: {
-      ticks: { color: '#64748b', maxTicksLimit: 12, font: { size: 11 } },
-      grid: { color: 'rgba(148, 163, 184, 0.06)' },
-    },
-    y: {
-      ticks: {
-        color: '#64748b',
-        font: { size: 11 },
-        callback: (val: any) => `${val >= 0 ? '+' : ''}${Number(val).toFixed(0)}%`,
+    scales: {
+      x: {
+        ticks: { color: cssVar('--chart-tick'), maxTicksLimit: 12, font: { size: 11 } },
+        grid: { color: cssVar('--chart-grid') },
       },
-      grid: { color: 'rgba(148, 163, 184, 0.06)' },
+      y: {
+        ticks: {
+          color: cssVar('--chart-tick'),
+          font: { size: 11 },
+          callback: (val: any) => `${val >= 0 ? '+' : ''}${Number(val).toFixed(0)}%`,
+        },
+        grid: { color: cssVar('--chart-grid') },
+      },
     },
-  },
-}
+  }
+})
 </script>
 
 <template>
