@@ -5,6 +5,10 @@ export interface Asset {
   category: AssetCategory
   color: string
   description: string
+  dividendRate?: number // annual rate as decimal (0.08 = 8%)
+  parValue?: number // par value in USD
+  dividendFrequency?: 'quarterly' | 'monthly'
+  btcHoldings?: number // approximate BTC held
 }
 
 export type AssetCategory = 'bitcoin' | 'treasury' | 'bonds' | 'index'
@@ -56,6 +60,7 @@ export const ASSETS: Asset[] = [
     category: 'treasury',
     color: '#e23636',
     description: 'Formerly MicroStrategy — largest public BTC holder',
+    btcHoldings: 780897, // as of Apr 2026
   },
   {
     id: 'metaplanet',
@@ -64,6 +69,7 @@ export const ASSETS: Asset[] = [
     category: 'treasury',
     color: '#00c2a8',
     description: 'Japanese Bitcoin treasury company',
+    btcHoldings: 40177, // as of Q1 2026
   },
   {
     id: 'xxi',
@@ -72,6 +78,7 @@ export const ASSETS: Asset[] = [
     category: 'treasury',
     color: '#3b82f6',
     description: 'Bitcoin accumulation company backed by Tether & SoftBank',
+    btcHoldings: 43514, // as of Feb 2026
   },
   {
     id: 'capitalb',
@@ -80,6 +87,7 @@ export const ASSETS: Asset[] = [
     category: 'treasury',
     color: '#8b5cf6',
     description: 'Europe\'s first Bitcoin Treasury Company (The Blockchain Group)',
+    btcHoldings: 2925, // as of Apr 2026
   },
   {
     id: 'swc',
@@ -88,6 +96,7 @@ export const ASSETS: Asset[] = [
     category: 'treasury',
     color: '#10b981',
     description: 'UK-based Bitcoin treasury company',
+    btcHoldings: 2706, // as of Feb 2026
   },
 
   // Strategy Preferred Stock / Bonds
@@ -98,6 +107,9 @@ export const ASSETS: Asset[] = [
     category: 'bonds',
     color: '#f43f5e',
     description: 'Strategy convertible perpetual preferred stock',
+    dividendRate: 0.08,
+    parValue: 100,
+    dividendFrequency: 'quarterly',
   },
   {
     id: 'strd',
@@ -106,6 +118,9 @@ export const ASSETS: Asset[] = [
     category: 'bonds',
     color: '#a855f7',
     description: 'Strategy perpetual preferred stock — 10% annual dividend',
+    dividendRate: 0.10,
+    parValue: 100,
+    dividendFrequency: 'quarterly',
   },
   {
     id: 'strf',
@@ -113,7 +128,10 @@ export const ASSETS: Asset[] = [
     name: 'STRF (Strife)',
     category: 'bonds',
     color: '#fb923c',
-    description: 'Strategy preferred stock series F',
+    description: 'Strategy preferred stock series F — 10% fixed cumulative',
+    dividendRate: 0.10,
+    parValue: 100,
+    dividendFrequency: 'quarterly',
   },
   {
     id: 'strc',
@@ -122,6 +140,9 @@ export const ASSETS: Asset[] = [
     category: 'bonds',
     color: '#22d3ee',
     description: 'Strategy variable rate series A perpetual stretch preferred stock',
+    dividendRate: 0.115,
+    parValue: 100,
+    dividendFrequency: 'monthly',
   },
 
   // Market Indices

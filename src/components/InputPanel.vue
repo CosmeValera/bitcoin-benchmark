@@ -130,7 +130,7 @@ select:focus {
 }
 
 .error {
-  color: #ef4444;
+  color: var(--red);
   margin-top: 0.75rem;
   font-size: 0.875rem;
 }

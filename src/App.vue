@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { RouterView, RouterLink } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
 
 const { theme, toggle } = useTheme()
@@ -22,6 +22,11 @@ const { theme, toggle } = useTheme()
         <p class="subtitle">
           Compare Bitcoin against treasury stocks, preferred shares, and market indices using real historical data
         </p>
+        <nav class="nav-tabs">
+          <RouterLink to="/" class="tab">Benchmark</RouterLink>
+          <RouterLink to="/simulator" class="tab">DCA Simulator</RouterLink>
+          <RouterLink to="/portfolio" class="tab">Portfolio Builder</RouterLink>
+        </nav>
       </div>
     </header>
 
@@ -106,6 +111,33 @@ h1 {
   color: var(--text-muted);
   font-size: 0.95rem;
   margin: 0;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 0;
+  margin-top: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tab.router-link-exact-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 main {

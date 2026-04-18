@@ -22,6 +22,10 @@ export const useComparisonStore = defineStore('comparison', () => {
   const loading = ref(false)
   const errors = ref<Map<string, string>>(new Map())
   const hasRun = ref(false)
+  const showDividendAdjusted = ref(false)
+  const displayCurrency = ref<'USD' | 'BTC' | 'sats' | 'EUR'>('USD')
+  const btcPrices = ref<Map<string, number>>(new Map()) // date → BTC price in USD
+  const eurRate = ref<Map<string, number>>(new Map()) // date → EUR per USD
 
   // Computed
   const selectedAssets = computed(() =>
@@ -43,9 +47,20 @@ export const useComparisonStore = defineStore('comparison', () => {
       const allPrices = prices.map((p) => p.price)
       const startPrice = allPrices[0] ?? 0
       const currentPrice = allPrices[allPrices.length - 1] ?? 0
+      let totalReturn = startPrice > 0 ? ((currentPrice - startPrice) / startPrice) * 100 : 0
+
+      // Add cumulative dividend income if toggle is on
+      if (showDividendAdjusted.value && asset.dividendRate && asset.parValue && prices.length >= 2) {
+        const firstDate = new Date(prices[0].date)
+        const lastDate = new Date(prices[prices.length - 1].date)
+        const years = (lastDate.getTime() - firstDate.getTime()) / (365.25 * 86400000)
+        const dividendPerShare = asset.dividendRate * asset.parValue * years
+        totalReturn += (dividendPerShare / startPrice) * 100
+      }
+
       return {
         asset,
-        totalReturn: startPrice > 0 ? ((currentPrice - startPrice) / startPrice) * 100 : 0,
+        totalReturn,
         currentPrice,
         startPrice,
         high: Math.max(...allPrices),
@@ -68,6 +83,73 @@ export const useComparisonStore = defineStore('comparison', () => {
 
   function setTimeRange(range: TimeRange) {
     timeRange.value = range
+  }
+
+  function initFromUrl() {
+    const params = new URLSearchParams(window.location.search)
+    const assetsParam = params.get('assets')
+    const rangeParam = params.get('range') as TimeRange | null
+    if (assetsParam) {
+      const ids = assetsParam.split(',').filter((id) => ASSETS.some((a) => a.id === id))
+      if (ids.length > 0) selectedIds.value = new Set(ids)
+    }
+    if (rangeParam) {
+      const validRanges: TimeRange[] = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '5Y', 'ALL', 'CUSTOM']
+      if (validRanges.includes(rangeParam)) timeRange.value = rangeParam
+    }
+    if (rangeParam === 'CUSTOM') {
+      const from = params.get('from')
+      const to = params.get('to')
+      if (from) customStartDate.value = from
+      if (to) customEndDate.value = to
+    }
+  }
+
+  function convertPrice(usd: number, date?: string): number {
+    if (displayCurrency.value === 'USD') return usd
+    if (displayCurrency.value === 'BTC') {
+      const btc = date ? btcPrices.value.get(date) : getLatestBtcPrice()
+      return btc ? usd / btc : usd
+    }
+    if (displayCurrency.value === 'sats') {
+      const btc = date ? btcPrices.value.get(date) : getLatestBtcPrice()
+      return btc ? (usd / btc) * 1e8 : usd
+    }
+    if (displayCurrency.value === 'EUR') {
+      const rate = date ? eurRate.value.get(date) : getLatestEurRate()
+      return rate ? usd * rate : usd
+    }
+    return usd
+  }
+
+  function getLatestBtcPrice(): number | undefined {
+    const entries = [...btcPrices.value.entries()]
+    return entries.length > 0 ? entries[entries.length - 1][1] : undefined
+  }
+
+  function getLatestEurRate(): number | undefined {
+    const entries = [...eurRate.value.entries()]
+    return entries.length > 0 ? entries[entries.length - 1][1] : undefined
+  }
+
+  function currencySymbol(): string {
+    switch (displayCurrency.value) {
+      case 'USD': return '$'
+      case 'BTC': return '₿'
+      case 'sats': return 'sats '
+      case 'EUR': return '€'
+    }
+  }
+
+  function toShareUrl(): string {
+    const url = new URL(window.location.href.split('?')[0])
+    url.searchParams.set('assets', [...selectedIds.value].join(','))
+    url.searchParams.set('range', timeRange.value)
+    if (timeRange.value === 'CUSTOM') {
+      url.searchParams.set('from', customStartDate.value)
+      url.searchParams.set('to', customEndDate.value)
+    }
+    return url.toString()
   }
 
   async function runComparison() {
@@ -101,7 +183,25 @@ export const useComparisonStore = defineStore('comparison', () => {
       }
     })
 
-    await Promise.all(fetches)
+    // Always fetch BTC prices for currency conversion
+    const btcFetch = fetchAssetPrices('BTC-USD', from, to)
+      .then((prices) => {
+        const map = new Map<string, number>()
+        for (const p of prices) map.set(p.date, p.price)
+        btcPrices.value = map
+      })
+      .catch(() => {})
+
+    // Fetch EUR rate if needed
+    const eurFetch = fetchAssetPrices('EURUSD=X', from, to)
+      .then((prices) => {
+        const map = new Map<string, number>()
+        for (const p of prices) map.set(p.date, p.price)
+        eurRate.value = map
+      })
+      .catch(() => {})
+
+    await Promise.all([...fetches, btcFetch, eurFetch])
 
     // Sort to match the original asset order
     results.sort(
@@ -124,10 +224,18 @@ export const useComparisonStore = defineStore('comparison', () => {
     loading,
     errors,
     hasRun,
+    showDividendAdjusted,
+    displayCurrency,
+    btcPrices,
+    eurRate,
     selectedAssets,
     metrics,
     toggleAsset,
     setTimeRange,
+    convertPrice,
+    currencySymbol,
+    initFromUrl,
+    toShareUrl,
     runComparison,
   }
 })

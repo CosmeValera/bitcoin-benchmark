@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -12,85 +12,74 @@ import {
   Legend,
   Filler,
 } from 'chart.js'
-import { useComparisonStore } from '@/stores/comparison'
+import { usePortfolioStore } from '@/stores/portfolio'
 import { useTheme } from '@/composables/useTheme'
-import { useExport } from '@/composables/useExport'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
-const store = useComparisonStore()
+const store = usePortfolioStore()
 const { theme } = useTheme()
-const { exportPng } = useExport()
-const lineChart = ref<any>(null)
-
-function downloadPng() {
-  if (lineChart.value?.chart?.canvas) {
-    exportPng(lineChart.value.chart.canvas)
-  }
-}
 
 function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
 const chartData = computed(() => {
-  if (store.assetsData.length === 0) return { labels: [], datasets: [] }
+  if (!store.result) return { labels: [], datasets: [] }
 
-  // Build a union of all dates across all assets, sorted chronologically
-  const dateSet = new Set<string>()
-  for (const { prices } of store.assetsData) {
-    for (const p of prices) dateSet.add(p.date)
-  }
-  const allDates = [...dateSet].sort()
+  const { blendedReturns, assetData } = store.result
 
-  const step = Math.max(1, Math.floor(allDates.length / 80))
-
-  const labels = allDates.filter(
-    (_, i) => i % step === 0 || i === allDates.length - 1,
-  )
+  const step = Math.max(1, Math.floor(blendedReturns.length / 80))
+  const labels = blendedReturns
+    .filter((_, i) => i % step === 0 || i === blendedReturns.length - 1)
+    .map((br) => br.date)
   const labelSet = new Set(labels)
 
-  const datasets = store.assetsData.map(({ asset, prices, normalizedReturns }) => {
-    // Map date → normalized return for this asset, optionally adjusted for dividends
+  // Individual asset lines (thin, semi-transparent)
+  const assetDatasets = assetData.map(({ asset, prices, normalizedReturns }) => {
     const dateToReturn = new Map<string, number>()
-    const startDate = prices.length > 0 ? new Date(prices[0].date) : new Date()
-    const startPrice = prices.length > 0 ? prices[0].price : 1
-    const hasDividend = store.showDividendAdjusted && asset.dividendRate && asset.parValue
-
     for (let i = 0; i < prices.length; i++) {
-      let ret = normalizedReturns[i]
-      if (hasDividend) {
-        const dayDate = new Date(prices[i].date)
-        const years = (dayDate.getTime() - startDate.getTime()) / (365.25 * 86400000)
-        const divAccrued = asset.dividendRate! * asset.parValue! * years
-        ret += (divAccrued / startPrice) * 100
-      }
-      dateToReturn.set(prices[i].date, ret)
+      dateToReturn.set(prices[i].date, normalizedReturns[i])
     }
-
-    // Produce data aligned to the shared label dates; null where data is missing
     const data = labels.map((d) => dateToReturn.get(d) ?? null)
-
     return {
       label: asset.name,
       data,
-      borderColor: asset.color,
+      borderColor: asset.color + '88',
       backgroundColor: 'transparent',
       tension: 0.3,
       pointRadius: 0,
-      pointHoverRadius: 4,
-      borderWidth: 2,
+      pointHoverRadius: 3,
+      borderWidth: 1.5,
+      borderDash: [4, 2],
       spanGaps: true,
     }
   })
 
-  return { labels, datasets }
+  // Blended portfolio line (thick, accent color)
+  const dateToBlend = new Map<string, number>()
+  for (const br of blendedReturns) {
+    dateToBlend.set(br.date, br.value)
+  }
+  const blendedData = labels.map((d) => dateToBlend.get(d) ?? null)
+
+  const portfolioDataset = {
+    label: 'Portfolio (blended)',
+    data: blendedData,
+    borderColor: cssVar('--accent'),
+    backgroundColor: 'transparent',
+    tension: 0.3,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    borderWidth: 3,
+    spanGaps: true,
+  }
+
+  return { labels, datasets: [portfolioDataset, ...assetDatasets] }
 })
 
 const chartOptions = computed(() => {
-  // Access theme.value so this recomputes on theme change
   void theme.value
-
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -143,16 +132,13 @@ const chartOptions = computed(() => {
 </script>
 
 <template>
-  <section v-if="store.hasRun && store.assetsData.length" class="chart-panel">
+  <section v-if="store.hasRun && store.result" class="chart-panel">
     <div class="chart-header">
-      <h2>Performance Comparison</h2>
-      <div class="chart-header-right">
-        <span class="chart-hint">Normalized returns from start date</span>
-        <button class="export-btn" @click="downloadPng" title="Download PNG">PNG</button>
-      </div>
+      <h2>Portfolio Performance</h2>
+      <span class="chart-hint">Weighted blended returns</span>
     </div>
     <div class="chart-container">
-      <Line ref="lineChart" :data="chartData" :options="chartOptions" />
+      <Line :data="chartData" :options="chartOptions" />
     </div>
   </section>
 </template>
@@ -172,12 +158,6 @@ const chartOptions = computed(() => {
   margin-bottom: 1rem;
 }
 
-.chart-header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
 h2 {
   margin: 0;
   font-size: 1.125rem;
@@ -187,26 +167,6 @@ h2 {
 .chart-hint {
   font-size: 0.75rem;
   color: var(--text-muted);
-}
-
-.export-btn {
-  padding: 0.3rem 0.65rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 0.7rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  transition: all 0.15s;
-}
-
-.export-btn:hover {
-  border-color: var(--text-muted);
-  color: var(--text);
 }
 
 .chart-container {
@@ -219,7 +179,6 @@ h2 {
     flex-direction: column;
     gap: 0.25rem;
   }
-
   .chart-container {
     height: 300px;
   }

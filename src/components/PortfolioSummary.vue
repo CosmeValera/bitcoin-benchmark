@@ -1,69 +1,57 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useSimulationStore } from '@/stores/simulation'
+import { usePortfolioStore } from '@/stores/portfolio'
 
-const store = useSimulationStore()
+const store = usePortfolioStore()
+
+function fmt(n: number, decimals = 1): string {
+  return n.toLocaleString('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })
+}
 
 const cards = computed(() => {
   const r = store.result
   if (!r) return []
-
   return [
     {
-      label: 'DCA Total Invested',
-      value: store.formatCurrency(r.dcaTotalInvested[r.dcaTotalInvested.length - 1]),
-      accent: false,
+      label: 'Total Return',
+      value: `${r.totalReturn >= 0 ? '+' : ''}${fmt(r.totalReturn)}%`,
+      positive: r.totalReturn >= 0,
+      negative: r.totalReturn < 0,
     },
     {
-      label: 'DCA Portfolio Value',
-      value: store.formatCurrency(r.dcaFinalValue),
-      accent: true,
+      label: 'Volatility (Ann.)',
+      value: `${fmt(r.volatility)}%`,
+      positive: false,
+      negative: false,
     },
     {
-      label: 'DCA ROI',
-      value: `${r.dcaROI >= 0 ? '+' : ''}${r.dcaROI.toFixed(1)}%`,
-      accent: r.dcaROI >= 0,
-      negative: r.dcaROI < 0,
+      label: 'Max Drawdown',
+      value: `${fmt(r.maxDrawdown)}%`,
+      positive: false,
+      negative: r.maxDrawdown > 0,
     },
     {
-      label: 'DCA BTC Accumulated',
-      value: `₿ ${store.formatBtc(r.dcaBtcAccumulated)}`,
-      accent: false,
-    },
-    {
-      label: 'Lump Sum Invested',
-      value: store.formatCurrency(r.lumpSumTotalInvested),
-      accent: false,
-    },
-    {
-      label: 'Lump Sum Portfolio Value',
-      value: store.formatCurrency(r.lumpSumFinalValue),
-      accent: true,
-    },
-    {
-      label: 'Lump Sum ROI',
-      value: `${r.lumpSumROI >= 0 ? '+' : ''}${r.lumpSumROI.toFixed(1)}%`,
-      accent: r.lumpSumROI >= 0,
-      negative: r.lumpSumROI < 0,
-    },
-    {
-      label: 'Lump Sum BTC',
-      value: `₿ ${store.formatBtc(r.lumpSumBtcAccumulated)}`,
-      accent: false,
+      label: 'Assets in Portfolio',
+      value: `${r.assetData.length}`,
+      positive: false,
+      negative: false,
     },
   ]
 })
 </script>
 
 <template>
-  <section v-if="store.hasRun && store.result" class="results-summary">
-    <h2>Results</h2>
+  <section v-if="store.hasRun && store.result" class="portfolio-summary">
+    <h2>Portfolio Summary</h2>
     <div class="cards-grid">
       <div
         v-for="card in cards"
         :key="card.label"
         class="card"
-        :class="{ positive: card.accent, negative: card.negative }"
+        :class="{ positive: card.positive, negative: card.negative }"
       >
         <span class="card-label">{{ card.label }}</span>
         <span class="card-value">{{ card.value }}</span>
@@ -73,7 +61,7 @@ const cards = computed(() => {
 </template>
 
 <style scoped>
-.results-summary {
+.portfolio-summary {
   background: var(--card-bg);
   border-radius: 12px;
   padding: 1.5rem;
