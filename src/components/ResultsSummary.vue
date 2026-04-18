@@ -1,0 +1,137 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useSimulationStore } from '@/stores/simulation'
+
+const store = useSimulationStore()
+
+const cards = computed(() => {
+  const r = store.result
+  if (!r) return []
+
+  return [
+    {
+      label: 'DCA Total Invested',
+      value: store.formatCurrency(r.dcaTotalInvested[r.dcaTotalInvested.length - 1]),
+      accent: false,
+    },
+    {
+      label: 'DCA Portfolio Value',
+      value: store.formatCurrency(r.dcaFinalValue),
+      accent: true,
+    },
+    {
+      label: 'DCA ROI',
+      value: `${r.dcaROI >= 0 ? '+' : ''}${r.dcaROI.toFixed(1)}%`,
+      accent: r.dcaROI >= 0,
+      negative: r.dcaROI < 0,
+    },
+    {
+      label: 'DCA BTC Accumulated',
+      value: `₿ ${store.formatBtc(r.dcaBtcAccumulated)}`,
+      accent: false,
+    },
+    {
+      label: 'Lump Sum Invested',
+      value: store.formatCurrency(r.lumpSumTotalInvested),
+      accent: false,
+    },
+    {
+      label: 'Lump Sum Portfolio Value',
+      value: store.formatCurrency(r.lumpSumFinalValue),
+      accent: true,
+    },
+    {
+      label: 'Lump Sum ROI',
+      value: `${r.lumpSumROI >= 0 ? '+' : ''}${r.lumpSumROI.toFixed(1)}%`,
+      accent: r.lumpSumROI >= 0,
+      negative: r.lumpSumROI < 0,
+    },
+    {
+      label: 'Lump Sum BTC',
+      value: `₿ ${store.formatBtc(r.lumpSumBtcAccumulated)}`,
+      accent: false,
+    },
+  ]
+})
+</script>
+
+<template>
+  <section v-if="store.hasRun && store.result" class="results-summary">
+    <h2>Results</h2>
+    <div class="cards-grid">
+      <div
+        v-for="card in cards"
+        :key="card.label"
+        class="card"
+        :class="{ positive: card.accent, negative: card.negative }"
+      >
+        <span class="card-label">{{ card.label }}</span>
+        <span class="card-value">{{ card.value }}</span>
+      </div>
+    </div>
+  </section>
+</template>
+
+<style scoped>
+.results-summary {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+}
+
+h2 {
+  margin: 0 0 1.25rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.card {
+  background: var(--card-inner-bg);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.card-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 500;
+}
+
+.card-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.card.positive .card-value {
+  color: var(--green);
+}
+
+.card.negative .card-value {
+  color: #ef4444;
+}
+
+@media (max-width: 768px) {
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 400px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
