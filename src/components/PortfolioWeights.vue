@@ -139,27 +139,36 @@ const CIRC = 2 * Math.PI * R
       </div>
     </div>
 
-    <!-- Custom Assets -->
-    <div class="category">
+    <!-- Custom Tickers -->
+    <div class="category custom-section">
       <h3>Custom Tickers</h3>
-      <div class="add-ticker">
-        <input
-          type="text"
-          v-model="tickerInput"
-          placeholder="e.g. ETH, AAPL, GLD..."
-          class="ticker-field"
-          @keydown="onTickerKeydown"
-        />
-        <button class="add-btn" @click="addTicker" :disabled="!tickerInput.trim()">Add</button>
+      <div class="add-ticker-row">
+        <div class="add-ticker-input-wrap">
+          <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+            <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.45 4.39l3.08 3.08a.75.75 0 11-1.06 1.06l-3.08-3.08A7 7 0 012 9z" clip-rule="evenodd" />
+          </svg>
+          <input
+            type="text"
+            v-model="tickerInput"
+            placeholder="Type a ticker (AAPL, GLD, ETH-USD...)"
+            class="ticker-field"
+            @keydown="onTickerKeydown"
+          />
+        </div>
+        <button class="add-btn" @click="addTicker" :disabled="!tickerInput.trim()">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+            <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+          </svg>
+          Add
+        </button>
       </div>
       <span v-if="addError" class="add-error">{{ addError }}</span>
 
-      <div class="asset-rows" v-if="store.customAssets.length > 0">
-        <div v-for="asset in store.customAssets" :key="asset.id" class="asset-row">
+      <div v-if="store.customAssets.length > 0" class="custom-assets-list">
+        <div v-for="asset in store.customAssets" :key="asset.id" class="custom-asset-row">
           <div class="asset-info">
             <span class="dot" :style="{ background: asset.color }"></span>
             <span class="asset-name">{{ asset.name }}</span>
-            <button class="remove-btn" @click="store.removeCustomAsset(asset.id)" title="Remove">&times;</button>
           </div>
           <div class="weight-input">
             <input
@@ -172,8 +181,14 @@ const CIRC = 2 * Math.PI * R
             />
             <span class="weight-value">{{ store.allocations[asset.id] ?? 0 }}%</span>
           </div>
+          <button class="remove-btn" @click="store.removeCustomAsset(asset.id)" title="Remove">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
+              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+            </svg>
+          </button>
         </div>
       </div>
+      <p v-else class="custom-empty">Add any ticker from Yahoo Finance to include it in your portfolio.</p>
     </div>
   </section>
 </template>
@@ -337,27 +352,51 @@ h3 {
   color: var(--text-muted);
 }
 
-.add-ticker {
+/* Custom tickers section */
+.custom-section {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.add-ticker-row {
   display: flex;
-  gap: 0.35rem;
-  margin-bottom: 0.5rem;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.add-ticker-input-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.55rem;
+  color: var(--text-muted);
+  pointer-events: none;
+  opacity: 0.5;
 }
 
 .ticker-field {
-  flex: 1;
-  padding: 0.4rem 0.6rem;
+  width: 100%;
+  padding: 0.45rem 0.6rem 0.45rem 1.85rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--input-bg, var(--card-bg));
   color: var(--text);
   font-size: 0.8rem;
   font-family: inherit;
   text-transform: uppercase;
+  transition: border-color 0.15s;
 }
 
 .ticker-field::placeholder {
   text-transform: none;
   color: var(--text-muted);
+  opacity: 0.6;
 }
 
 .ticker-field:focus {
@@ -366,16 +405,20 @@ h3 {
 }
 
 .add-btn {
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: none;
   background: var(--accent);
   color: #fff;
   font-size: 0.8rem;
   font-family: inherit;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s;
+  white-space: nowrap;
 }
 
 .add-btn:hover:not(:disabled) {
@@ -383,7 +426,7 @@ h3 {
 }
 
 .add-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
@@ -391,28 +434,72 @@ h3 {
   font-size: 0.7rem;
   color: var(--red, #ef4444);
   display: block;
-  margin-bottom: 0.35rem;
+  margin: -0.3rem 0 0.4rem;
+}
+
+.custom-assets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.custom-asset-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  background: var(--card-inner-bg, var(--bg));
+  border: 1px solid var(--border);
+  transition: border-color 0.15s;
+}
+
+.custom-asset-row:hover {
+  border-color: var(--text-muted);
+}
+
+.custom-asset-row .asset-info {
+  min-width: 80px;
+}
+
+.custom-asset-row .weight-input {
+  flex: 1;
 }
 
 .remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
   background: none;
-  border: none;
+  border: 1px solid transparent;
   color: var(--text-muted);
-  font-size: 1rem;
-  line-height: 1;
   cursor: pointer;
-  padding: 0 0.15rem;
-  opacity: 0.5;
-  transition: opacity 0.15s, color 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  opacity: 0.4;
 }
 
 .remove-btn:hover {
   opacity: 1;
   color: var(--red, #ef4444);
+  border-color: var(--red, #ef4444);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.custom-empty {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+  opacity: 0.7;
 }
 
 @media (max-width: 500px) {
-  .asset-row {
+  .asset-row,
+  .custom-asset-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.25rem;
@@ -421,6 +508,11 @@ h3 {
   .weight-input {
     max-width: 100%;
     width: 100%;
+  }
+
+  .custom-asset-row {
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 }
 </style>
