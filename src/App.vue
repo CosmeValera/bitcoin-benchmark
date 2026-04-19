@@ -12,7 +12,7 @@ const { theme, toggle } = useTheme()
         <div class="header-top">
           <div class="logo">
             <span class="logo-icon">₿</span>
-            <h1>Bitcoin Benchmark</h1>
+            <h1>Bitcoin Finance Lab</h1>
           </div>
           <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
             <span v-if="theme === 'dark'">&#9788;</span>
@@ -20,12 +20,12 @@ const { theme, toggle } = useTheme()
           </button>
         </div>
         <p class="subtitle">
-          Compare Bitcoin against treasury stocks, preferred shares, and market indices using real historical data
+          Build portfolios, benchmark assets, and simulate DCA strategies with real market data
         </p>
         <nav class="nav-tabs">
-          <RouterLink to="/" class="tab">Benchmark</RouterLink>
+          <RouterLink to="/" class="tab">Portfolio Builder</RouterLink>
+          <RouterLink to="/benchmark" class="tab">Benchmark</RouterLink>
           <RouterLink to="/simulator" class="tab">DCA Simulator</RouterLink>
-          <RouterLink to="/portfolio" class="tab">Portfolio Builder</RouterLink>
         </nav>
       </div>
     </header>

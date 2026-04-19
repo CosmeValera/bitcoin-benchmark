@@ -27,9 +27,12 @@ export interface PortfolioResult {
 export const usePortfolioStore = defineStore('portfolio', () => {
   const { fetchAssetPrices, normalizeReturns, calcVolatility } = useMarketData()
 
-  // State – every asset starts at 0; always replace the whole object so Vue sees the change
+  // State – default portfolio: BTC 30%, MSTR 20%, SPY 50%
   const initialWeights: Record<string, number> = {}
   for (const a of ASSETS) initialWeights[a.id] = 0
+  initialWeights['btc'] = 30
+  initialWeights['mstr'] = 20
+  initialWeights['spy'] = 50
   const allocations = ref<Record<string, number>>(initialWeights)
   const customAssets = ref<Asset[]>([])
   const timeRange = ref<TimeRange>('1Y')

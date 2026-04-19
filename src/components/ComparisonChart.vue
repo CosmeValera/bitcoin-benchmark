@@ -68,8 +68,17 @@ const chartData = computed(() => {
       dateToReturn.set(prices[i].date, ret)
     }
 
-    // Produce data aligned to the shared label dates; null where data is missing
-    const data = labels.map((d) => dateToReturn.get(d) ?? null)
+    // Produce data aligned to the shared label dates;
+    // carry forward last known value on weekends/holidays to avoid spikes
+    let lastKnown: number | null = null
+    const data = labels.map((d) => {
+      const val = dateToReturn.get(d)
+      if (val !== undefined) {
+        lastKnown = val
+        return val
+      }
+      return lastKnown
+    })
 
     return {
       label: asset.name,

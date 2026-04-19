@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio'
 import type { TimeRange } from '@/types'
 import PortfolioWeights from '@/components/PortfolioWeights.vue'
@@ -7,6 +8,12 @@ import PortfolioSummary from '@/components/PortfolioSummary.vue'
 
 const store = usePortfolioStore()
 const ranges: TimeRange[] = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '5Y', 'ALL', 'CUSTOM']
+
+onMounted(() => {
+  if (!store.hasRun && store.isValid) {
+    store.runPortfolio()
+  }
+})
 </script>
 
 <template>

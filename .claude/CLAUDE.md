@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Bitcoin Benchmark is a Vue 3 financial comparison tool that visualizes Bitcoin performance against treasury stocks, preferred shares, and market indices using real historical data from Yahoo Finance.
+Bitcoin Finance Lab is a Vue 3 financial toolkit that lets you build portfolios, benchmark Bitcoin against treasury stocks and market indices, and simulate DCA strategies using real historical data from Yahoo Finance.
 
 ## Build Commands
 

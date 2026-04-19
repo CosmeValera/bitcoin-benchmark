@@ -1,15 +1,14 @@
-# Bitcoin Benchmark
+# Bitcoin Finance Lab
 
-Compare Bitcoin against treasury stocks, preferred shares, and market indices, all in one chart with real historical data.
+A suite of Bitcoin finance tools — build portfolios, benchmark assets, and simulate DCA strategies with real historical data.
 
-![Bitcoin Benchmark screenshot](image.png)
+![Bitcoin Finance Lab screenshot](image.png)
 
 ## What it does
 
-Pick any combination of assets, choose a time range, and hit **Compare**. You get:
-
-- A line chart showing normalized returns (% change from start date)
-- A metrics table with return, price range, and volatility for each asset
+- **Portfolio Builder** — Allocate weights across BTC, treasury stocks, preferred shares, indices, and any custom ticker. See blended returns, volatility, and max drawdown.
+- **Benchmark** — Compare normalized returns across assets on a single chart with a sortable metrics table.
+- **DCA Simulator** — Simulate dollar-cost averaging into Bitcoin over any time period.
 
 ### Available assets
 
