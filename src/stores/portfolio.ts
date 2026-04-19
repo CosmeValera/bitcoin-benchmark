@@ -110,44 +110,42 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     // Build blended returns
     // Build date→return lookup per asset for O(1) access
     const assetDateMaps: Map<string, Map<string, number>> = new Map()
+    const allDateSet = new Set<string>()
     for (const ad of assetResults) {
       const dateMap = new Map<string, number>()
       for (let i = 0; i < ad.prices.length; i++) {
         dateMap.set(ad.prices[i].date, ad.normalizedReturns[i])
+        allDateSet.add(ad.prices[i].date)
       }
       assetDateMaps.set(ad.asset.id, dateMap)
     }
 
-    // Use only dates where ALL assets have data (intersection, not union)
-    // This prevents the blended return from being skewed by missing data
-    let commonDates: string[] | null = null
-    for (const ad of assetResults) {
-      const dates = new Set(ad.prices.map((p) => p.date))
-      if (commonDates === null) {
-        commonDates = [...dates]
-      } else {
-        commonDates = commonDates.filter((d) => dates.has(d))
-      }
-    }
-    const allDates = commonDates ? commonDates.sort() : []
+    // Union of all dates — show the full time range
+    const allDates = [...allDateSet].sort()
 
-    // For each date, compute weighted average of normalized returns
+    // For each date, blend only the assets that exist on that date,
+    // redistributing weights proportionally among available assets
     const blendedReturns: { date: string; value: number }[] = []
-    let totalAllocWeight = 0
-    for (const id of Object.keys(normalizedWeights)) {
-      if (assetResults.some((a) => a.asset.id === id)) totalAllocWeight += normalizedWeights[id]
-    }
 
     for (const date of allDates) {
-      let weightedReturn = 0
+      // Find which assets have data on this date and their weights
+      let availableWeightSum = 0
+      const available: { weight: number; ret: number }[] = []
       for (const ad of assetResults) {
-        const weight = normalizedWeights[ad.asset.id] ?? 0
         const ret = assetDateMaps.get(ad.asset.id)?.get(date)
         if (ret != null) {
-          weightedReturn += (ret * weight) / totalAllocWeight
+          const weight = normalizedWeights[ad.asset.id] ?? 0
+          availableWeightSum += weight
+          available.push({ weight, ret })
         }
       }
-      blendedReturns.push({ date, value: weightedReturn })
+      if (availableWeightSum > 0) {
+        let weightedReturn = 0
+        for (const { weight, ret } of available) {
+          weightedReturn += (ret * weight) / availableWeightSum
+        }
+        blendedReturns.push({ date, value: weightedReturn })
+      }
     }
 
     // Compute portfolio-level metrics
