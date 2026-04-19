@@ -40,7 +40,15 @@ function onTickerKeydown(e: KeyboardEvent) {
   if (e.key === 'Enter') addTicker()
 }
 
-// Donut chart data: active assets normalized to 100%
+// Short display names for compact grid
+function shortName(name: string): string {
+  // Extract ticker from parentheses or use first word
+  const match = name.match(/\(([^)]+)\)/)
+  if (match) return match[1]
+  return name.length > 10 ? name.slice(0, 10) : name
+}
+
+// Donut chart data
 const donutSlices = computed(() => {
   const total = store.totalWeight
   if (total <= 0) return []
@@ -56,7 +64,6 @@ const donutSlices = computed(() => {
       pct: (store.allocations[a.id] / total) * 100,
     }))
 
-  // Build SVG arc offsets
   let offset = 0
   return active.map((s) => {
     const slice = { ...s, offset }
@@ -65,7 +72,6 @@ const donutSlices = computed(() => {
   })
 })
 
-// SVG donut helpers (radius 15.9155 gives circumference ~ 100)
 const R = 15.9155
 const CIRC = 2 * Math.PI * R
 </script>
@@ -116,31 +122,38 @@ const CIRC = 2 * Math.PI * R
       </button>
     </div>
 
+    <!-- Built-in assets — compact 2-col grid -->
     <div v-for="cat in ASSET_CATEGORIES" :key="cat.key" class="category">
       <h3>{{ cat.label }}</h3>
-      <div class="asset-rows">
-        <div v-for="asset in assetsForCategory(cat.key)" :key="asset.id" class="asset-row">
-          <div class="asset-info">
+      <div class="asset-grid">
+        <div
+          v-for="asset in assetsForCategory(cat.key)"
+          :key="asset.id"
+          class="asset-cell"
+          :class="{ active: (store.allocations[asset.id] ?? 0) > 0 }"
+        >
+          <div class="cell-top">
             <span class="dot" :style="{ background: asset.color }"></span>
-            <span class="asset-name">{{ asset.name }}</span>
+            <span class="cell-name">{{ shortName(asset.name) }}</span>
+            <span class="cell-value" :class="{ highlight: (store.allocations[asset.id] ?? 0) > 0 }">
+              {{ store.allocations[asset.id] ?? 0 }}%
+            </span>
           </div>
-          <div class="weight-input">
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              :value="store.allocations[asset.id]"
-              @input="onInput(asset.id, $event)"
-            />
-            <span class="weight-value">{{ store.allocations[asset.id] }}%</span>
-          </div>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            class="cell-slider"
+            :value="store.allocations[asset.id]"
+            @input="onInput(asset.id, $event)"
+          />
         </div>
       </div>
     </div>
 
     <!-- Custom Tickers -->
-    <div class="category custom-section">
+    <div class="category">
       <h3>Custom Tickers</h3>
       <div class="add-ticker-row">
         <div class="add-ticker-input-wrap">
@@ -150,7 +163,7 @@ const CIRC = 2 * Math.PI * R
           <input
             type="text"
             v-model="tickerInput"
-            placeholder="Type a ticker (AAPL, GLD, ETH-USD...)"
+            placeholder="AAPL, ETH-USD, IBIT..."
             class="ticker-field"
             @keydown="onTickerKeydown"
           />
@@ -164,31 +177,36 @@ const CIRC = 2 * Math.PI * R
       </div>
       <span v-if="addError" class="add-error">{{ addError }}</span>
 
-      <div v-if="store.customAssets.length > 0" class="custom-assets-list">
-        <div v-for="asset in store.customAssets" :key="asset.id" class="custom-asset-row">
-          <div class="asset-info">
+      <div v-if="store.customAssets.length > 0" class="asset-grid" style="margin-top: 0.4rem;">
+        <div
+          v-for="asset in store.customAssets"
+          :key="asset.id"
+          class="asset-cell custom-cell"
+          :class="{ active: (store.allocations[asset.id] ?? 0) > 0 }"
+        >
+          <div class="cell-top">
             <span class="dot" :style="{ background: asset.color }"></span>
-            <span class="asset-name">{{ asset.name }}</span>
+            <span class="cell-name">{{ asset.name }}</span>
+            <span class="cell-value" :class="{ highlight: (store.allocations[asset.id] ?? 0) > 0 }">
+              {{ store.allocations[asset.id] ?? 0 }}%
+            </span>
+            <button class="remove-btn" @click="store.removeCustomAsset(asset.id)" title="Remove">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="10" height="10">
+                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+              </svg>
+            </button>
           </div>
-          <div class="weight-input">
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              :value="store.allocations[asset.id] ?? 0"
-              @input="onInput(asset.id, $event)"
-            />
-            <span class="weight-value">{{ store.allocations[asset.id] ?? 0 }}%</span>
-          </div>
-          <button class="remove-btn" @click="store.removeCustomAsset(asset.id)" title="Remove">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
-              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-            </svg>
-          </button>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            class="cell-slider"
+            :value="store.allocations[asset.id] ?? 0"
+            @input="onInput(asset.id, $event)"
+          />
         </div>
       </div>
-      <p v-else class="custom-empty">Add any ticker from Yahoo Finance to include it in your portfolio.</p>
     </div>
   </section>
 </template>
@@ -197,7 +215,7 @@ const CIRC = 2 * Math.PI * R
 .weights-panel {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.85rem;
 }
 
 .weights-header {
@@ -212,6 +230,7 @@ h2 {
   font-weight: 600;
 }
 
+/* Donut */
 .donut-area {
   display: flex;
   align-items: center;
@@ -263,6 +282,7 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 
+/* Presets */
 .presets {
   display: flex;
   flex-wrap: wrap;
@@ -286,83 +306,11 @@ h2 {
   color: var(--accent);
 }
 
-h3 {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  margin: 0 0 0.4rem;
-}
-
-.category {
-  margin-top: 0.25rem;
-}
-
-.asset-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.asset-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.asset-info {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-width: 140px;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.asset-name {
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.weight-input {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  max-width: 260px;
-}
-
-.weight-input input[type="range"] {
-  flex: 1;
-  accent-color: var(--accent);
-}
-
-.weight-value {
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
-  min-width: 36px;
-  text-align: right;
-  color: var(--text-muted);
-}
-
-/* Custom tickers section */
-.custom-section {
-  margin-top: 0.5rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
-}
-
+/* Custom tickers */
 .add-ticker-row {
   display: flex;
-  gap: 0.4rem;
-  margin-bottom: 0.6rem;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
 }
 
 .add-ticker-input-wrap {
@@ -374,7 +322,7 @@ h3 {
 
 .search-icon {
   position: absolute;
-  left: 0.55rem;
+  left: 0.5rem;
   color: var(--text-muted);
   pointer-events: none;
   opacity: 0.5;
@@ -382,12 +330,12 @@ h3 {
 
 .ticker-field {
   width: 100%;
-  padding: 0.45rem 0.6rem 0.45rem 1.85rem;
+  padding: 0.35rem 0.5rem 0.35rem 1.75rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--input-bg, var(--card-bg));
   color: var(--text);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-family: inherit;
   text-transform: uppercase;
   transition: border-color 0.15s;
@@ -407,13 +355,13 @@ h3 {
 .add-btn {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: 8px;
+  gap: 0.25rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 6px;
   border: none;
   background: var(--accent);
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-family: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -434,85 +382,115 @@ h3 {
   font-size: 0.7rem;
   color: var(--red, #ef4444);
   display: block;
-  margin: -0.3rem 0 0.4rem;
+  margin-top: 0.2rem;
 }
 
-.custom-assets-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.custom-asset-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.35rem 0.5rem;
-  border-radius: 8px;
-  background: var(--card-inner-bg, var(--bg));
-  border: 1px solid var(--border);
-  transition: border-color 0.15s;
-}
-
-.custom-asset-row:hover {
-  border-color: var(--text-muted);
-}
-
-.custom-asset-row .asset-info {
-  min-width: 80px;
-}
-
-.custom-asset-row .weight-input {
-  flex: 1;
+.custom-cell .cell-top {
+  gap: 0.25rem;
 }
 
 .remove-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
   background: none;
-  border: 1px solid transparent;
+  border: none;
   color: var(--text-muted);
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
+  opacity: 0.3;
   transition: all 0.15s;
-  opacity: 0.4;
 }
 
 .remove-btn:hover {
   opacity: 1;
   color: var(--red, #ef4444);
-  border-color: var(--red, #ef4444);
-  background: rgba(239, 68, 68, 0.08);
 }
 
-.custom-empty {
-  font-size: 0.75rem;
+/* Asset categories */
+h3 {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
-  margin: 0;
-  opacity: 0.7;
+  margin: 0 0 0.35rem;
 }
 
-@media (max-width: 500px) {
-  .asset-row,
-  .custom-asset-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-  }
+.category {
+  margin-top: 0;
+}
 
-  .weight-input {
-    max-width: 100%;
-    width: 100%;
-  }
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 
-  .custom-asset-row {
-    flex-direction: row;
-    flex-wrap: wrap;
+/* 2-column compact grid */
+.asset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem;
+}
+
+.asset-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.3rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+
+.asset-cell.active {
+  background: var(--card-inner-bg, var(--bg));
+  border-color: var(--border);
+}
+
+.cell-top {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cell-name {
+  font-size: 0.75rem;
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cell-value {
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  min-width: 26px;
+  text-align: right;
+}
+
+.cell-value.highlight {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.cell-slider {
+  width: 100%;
+  accent-color: var(--accent);
+  height: 14px;
+}
+
+@media (max-width: 400px) {
+  .asset-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

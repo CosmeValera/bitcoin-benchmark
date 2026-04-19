@@ -162,6 +162,22 @@ export const ASSETS: Asset[] = [
     color: '#64748b',
     description: 'Nasdaq 100 index ETF',
   },
+  {
+    id: 'gld',
+    ticker: 'GLD',
+    name: 'Gold (GLD)',
+    category: 'index',
+    color: '#eab308',
+    description: 'SPDR Gold Shares ETF',
+  },
+  {
+    id: 'nvda',
+    ticker: 'NVDA',
+    name: 'NVIDIA (NVDA)',
+    category: 'index',
+    color: '#38bdf8',
+    description: 'NVIDIA Corporation stock',
+  },
 ]
 
 export type TimeRange = '1M' | '3M' | '6M' | 'YTD' | '1Y' | '2Y' | '3Y' | '5Y' | 'ALL' | 'CUSTOM'
