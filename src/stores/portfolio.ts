@@ -2,12 +2,19 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import {
   ASSETS,
+  type Asset,
   type AssetData,
   type TimeRange,
   type PricePoint,
   getDateForRange,
 } from '@/types'
 import { useMarketData } from '@/composables/useMarketData'
+
+// Rotating palette for custom assets
+const CUSTOM_COLORS = [
+  '#ef4444', '#06b6d4', '#84cc16', '#f97316', '#ec4899',
+  '#14b8a6', '#eab308', '#6366f1', '#d946ef', '#0ea5e9',
+]
 
 export interface PortfolioResult {
   assetData: AssetData[]
@@ -24,6 +31,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   const initialWeights: Record<string, number> = {}
   for (const a of ASSETS) initialWeights[a.id] = 0
   const allocations = ref<Record<string, number>>(initialWeights)
+  const customAssets = ref<Asset[]>([])
   const timeRange = ref<TimeRange>('1Y')
   const customStartDate = ref('2020-01-01')
   const customEndDate = ref(new Date().toISOString().slice(0, 10))
@@ -40,6 +48,9 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   })
 
   const isValid = computed(() => totalWeight.value > 0)
+
+  // All assets: built-in + custom
+  const allAssets = computed(() => [...ASSETS, ...customAssets.value])
 
   const startDate = computed(() => {
     if (timeRange.value === 'CUSTOM') return new Date(customStartDate.value)
@@ -59,7 +70,37 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   function applyPreset(preset: Record<string, number>) {
     const next: Record<string, number> = {}
     for (const a of ASSETS) next[a.id] = 0
+    for (const a of customAssets.value) next[a.id] = 0
     Object.assign(next, preset)
+    allocations.value = next
+  }
+
+  function addCustomAsset(ticker: string) {
+    const normalized = ticker.trim().toUpperCase()
+    if (!normalized) return false
+    const id = `custom_${normalized.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+    // Check if already exists (built-in or custom)
+    if (ASSETS.some((a) => a.ticker.toUpperCase() === normalized)) return false
+    if (customAssets.value.some((a) => a.ticker.toUpperCase() === normalized)) return false
+
+    const colorIdx = customAssets.value.length % CUSTOM_COLORS.length
+    const asset: Asset = {
+      id,
+      ticker: normalized,
+      name: normalized,
+      category: 'index',
+      color: CUSTOM_COLORS[colorIdx],
+      description: `Custom asset: ${normalized}`,
+    }
+    customAssets.value = [...customAssets.value, asset]
+    allocations.value = { ...allocations.value, [id]: 0 }
+    return true
+  }
+
+  function removeCustomAsset(id: string) {
+    customAssets.value = customAssets.value.filter((a) => a.id !== id)
+    const next = { ...allocations.value }
+    delete next[id]
     allocations.value = next
   }
 
@@ -78,8 +119,9 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     const assetResults: AssetData[] = []
 
     const activeIds = Object.entries(allocations.value).filter(([, w]) => w > 0).map(([id]) => id)
+    const all = allAssets.value
     const fetches = activeIds.map(async (assetId) => {
-      const asset = ASSETS.find((a) => a.id === assetId)
+      const asset = all.find((a) => a.id === assetId)
       if (!asset) return
       try {
         const prices = await fetchAssetPrices(asset.ticker, from, to)
@@ -189,6 +231,8 @@ export const usePortfolioStore = defineStore('portfolio', () => {
 
   return {
     allocations,
+    customAssets,
+    allAssets,
     timeRange,
     customStartDate,
     customEndDate,
@@ -200,6 +244,8 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     isValid,
     setWeight,
     applyPreset,
+    addCustomAsset,
+    removeCustomAsset,
     setTimeRange,
     runPortfolio,
   }

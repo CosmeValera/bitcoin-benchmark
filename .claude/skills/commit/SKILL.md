@@ -21,6 +21,7 @@ Create a git commit for the current changes.
 4. Stage the intended files:
 5. Run `git status` after to confirm success.
 6. Do **not** push. Do **not** amend. If a pre-commit hook fails, fix the root cause and create a **new** commit.
+7. Output the final commit message and staged files for user confirmation.
 
 ## Guardrails
 

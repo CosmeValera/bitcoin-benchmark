@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio'
 import { ASSETS, ASSET_CATEGORIES } from '@/types'
 
@@ -12,6 +12,9 @@ const presets: { label: string; weights: Record<string, number> }[] = [
   { label: 'Treasury Mix', weights: { btc: 40, mstr: 30, metaplanet: 15, xxi: 15 } },
 ]
 
+const tickerInput = ref('')
+const addError = ref('')
+
 function onInput(id: string, event: Event) {
   const val = parseFloat((event.target as HTMLInputElement).value) || 0
   store.setWeight(id, val)
@@ -21,12 +24,29 @@ function assetsForCategory(key: string) {
   return ASSETS.filter((a) => a.category === key)
 }
 
+function addTicker() {
+  addError.value = ''
+  const ticker = tickerInput.value.trim()
+  if (!ticker) return
+  const ok = store.addCustomAsset(ticker)
+  if (ok) {
+    tickerInput.value = ''
+  } else {
+    addError.value = `"${ticker.toUpperCase()}" already exists`
+  }
+}
+
+function onTickerKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter') addTicker()
+}
+
 // Donut chart data: active assets normalized to 100%
 const donutSlices = computed(() => {
   const total = store.totalWeight
   if (total <= 0) return []
 
-  const active = ASSETS
+  const all = store.allAssets
+  const active = all
     .filter((a) => (store.allocations[a.id] ?? 0) > 0)
     .map((a) => ({
       id: a.id,
@@ -45,9 +65,9 @@ const donutSlices = computed(() => {
   })
 })
 
-// SVG donut helpers (radius 15.9155 gives circumference ≈ 100)
+// SVG donut helpers (radius 15.9155 gives circumference ~ 100)
 const R = 15.9155
-const CIRC = 2 * Math.PI * R // ≈ 100
+const CIRC = 2 * Math.PI * R
 </script>
 
 <template>
@@ -55,7 +75,6 @@ const CIRC = 2 * Math.PI * R // ≈ 100
     <div class="weights-header">
       <h2>Asset Allocation</h2>
       <div class="donut-area">
-        <!-- Donut chart -->
         <svg class="donut" viewBox="0 0 42 42" v-if="store.totalWeight > 0">
           <circle class="donut-bg" cx="21" cy="21" :r="R" fill="none" stroke-width="4" />
           <circle
@@ -77,7 +96,6 @@ const CIRC = 2 * Math.PI * R // ≈ 100
           <circle class="donut-bg" cx="21" cy="21" :r="R" fill="none" stroke-width="4" />
           <text x="21" y="21.5" text-anchor="middle" dominant-baseline="middle" class="donut-label">0</text>
         </svg>
-        <!-- Legend below donut -->
         <div class="donut-legend" v-if="donutSlices.length > 0">
           <span v-for="slice in donutSlices" :key="slice.id" class="legend-item">
             <span class="legend-dot" :style="{ background: slice.color }"></span>
@@ -116,6 +134,43 @@ const CIRC = 2 * Math.PI * R // ≈ 100
               @input="onInput(asset.id, $event)"
             />
             <span class="weight-value">{{ store.allocations[asset.id] }}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Assets -->
+    <div class="category">
+      <h3>Custom Tickers</h3>
+      <div class="add-ticker">
+        <input
+          type="text"
+          v-model="tickerInput"
+          placeholder="e.g. ETH, AAPL, GLD..."
+          class="ticker-field"
+          @keydown="onTickerKeydown"
+        />
+        <button class="add-btn" @click="addTicker" :disabled="!tickerInput.trim()">Add</button>
+      </div>
+      <span v-if="addError" class="add-error">{{ addError }}</span>
+
+      <div class="asset-rows" v-if="store.customAssets.length > 0">
+        <div v-for="asset in store.customAssets" :key="asset.id" class="asset-row">
+          <div class="asset-info">
+            <span class="dot" :style="{ background: asset.color }"></span>
+            <span class="asset-name">{{ asset.name }}</span>
+            <button class="remove-btn" @click="store.removeCustomAsset(asset.id)" title="Remove">&times;</button>
+          </div>
+          <div class="weight-input">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              :value="store.allocations[asset.id] ?? 0"
+              @input="onInput(asset.id, $event)"
+            />
+            <span class="weight-value">{{ store.allocations[asset.id] ?? 0 }}%</span>
           </div>
         </div>
       </div>
@@ -280,6 +335,80 @@ h3 {
   min-width: 36px;
   text-align: right;
   color: var(--text-muted);
+}
+
+.add-ticker {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.ticker-field {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--input-bg, var(--card-bg));
+  color: var(--text);
+  font-size: 0.8rem;
+  font-family: inherit;
+  text-transform: uppercase;
+}
+
+.ticker-field::placeholder {
+  text-transform: none;
+  color: var(--text-muted);
+}
+
+.ticker-field:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.add-btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.8rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.add-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.add-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.add-error {
+  font-size: 0.7rem;
+  color: var(--red, #ef4444);
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.15rem;
+  opacity: 0.5;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.remove-btn:hover {
+  opacity: 1;
+  color: var(--red, #ef4444);
 }
 
 @media (max-width: 500px) {
