@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useComparisonStore } from '@/stores/comparison'
 import { useExport } from '@/composables/useExport'
+import Sparkline from '@/components/Sparkline.vue'
 import type { PerformanceMetrics } from '@/types'
 
 const store = useComparisonStore()
@@ -72,6 +73,11 @@ function fmtHoldings(n: number | undefined): string {
   if (n == null) return '\u2014'
   return n.toLocaleString('en-US')
 }
+
+function sparklineData(m: PerformanceMetrics): number[] {
+  const ad = store.assetsData.find((d) => d.asset.id === m.asset.id)
+  return ad ? ad.normalizedReturns : []
+}
 </script>
 
 <template>
@@ -88,6 +94,7 @@ function fmtHoldings(n: number | undefined): string {
         <thead>
           <tr>
             <th class="col-asset sortable" @click="toggleSort('name')">Asset{{ sortArrow('name') }}</th>
+            <th class="col-trend">Trend</th>
             <th class="col-num sortable" @click="toggleSort('totalReturn')">Return{{ sortArrow('totalReturn') }}</th>
             <th class="col-num sortable" @click="toggleSort('startPrice')">Start Price{{ sortArrow('startPrice') }}</th>
             <th class="col-num sortable" @click="toggleSort('currentPrice')">Current Price{{ sortArrow('currentPrice') }}</th>
@@ -103,6 +110,9 @@ function fmtHoldings(n: number | undefined): string {
             <td class="col-asset">
               <span class="dot" :style="{ background: m.asset.color }"></span>
               {{ m.asset.name }}
+            </td>
+            <td class="col-trend">
+              <Sparkline :data="sparklineData(m)" :color="m.asset.color" />
             </td>
             <td
               class="col-num"
@@ -230,6 +240,11 @@ tr:last-child td {
 .col-num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+.col-trend {
+  text-align: center;
+  padding: 0.4rem 0.5rem;
 }
 
 .col-asset {

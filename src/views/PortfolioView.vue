@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio'
+import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import type { TimeRange } from '@/types'
 import PortfolioWeights from '@/components/PortfolioWeights.vue'
 import PortfolioChart from '@/components/PortfolioChart.vue'
@@ -17,6 +18,22 @@ function share() {
     setTimeout(() => (copied.value = false), 2000)
   })
 }
+
+useKeyboardShortcuts([
+  {
+    key: 'Enter',
+    ctrl: true,
+    action: () => { if (!store.loading && store.isValid) store.runPortfolio() },
+    description: 'Build portfolio',
+  },
+  {
+    key: 'a',
+    ctrl: true,
+    shift: true,
+    action: () => { store.autoRun = !store.autoRun },
+    description: 'Toggle auto-run',
+  },
+])
 
 onMounted(() => {
   store.initFromUrl()
@@ -81,6 +98,14 @@ onMounted(() => {
             </svg>
             BUILD PORTFOLIO
           </template>
+        </button>
+        <button
+          class="btn-auto"
+          :class="{ active: store.autoRun }"
+          @click="store.autoRun = !store.autoRun"
+          title="Auto-run portfolio when parameters change"
+        >
+          Auto
         </button>
       </div>
     </section>
@@ -275,6 +300,33 @@ onMounted(() => {
   letter-spacing: normal;
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+.btn-auto {
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.btn-auto:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+.btn-auto.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
 }
 
 .performance-panel {

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   ASSETS,
   type Asset,
@@ -30,6 +30,8 @@ export const useComparisonStore = defineStore('comparison', () => {
   const errors = ref<Map<string, string>>(new Map())
   const hasRun = ref(false)
   const showDividendAdjusted = ref(false)
+  const showDrawdown = ref(false)
+  const autoRun = ref(localStorage.getItem('autoRun') !== 'false')
   const displayCurrency = ref<'USD' | 'BTC' | 'sats' | 'EUR'>('USD')
   const btcPrices = ref<Map<string, number>>(new Map()) // date → BTC price in USD
   const eurRate = ref<Map<string, number>>(new Map()) // date → EUR per USD
@@ -76,6 +78,18 @@ export const useComparisonStore = defineStore('comparison', () => {
         low: Math.min(...allPrices),
         volatility: calcVolatility(prices),
       }
+    })
+  })
+
+  const drawdownData = computed(() => {
+    return assetsData.value.map(({ asset, prices }) => {
+      const allPrices = prices.map((p) => p.price)
+      let peak = -Infinity
+      const drawdowns = allPrices.map((price) => {
+        if (price > peak) peak = price
+        return ((price - peak) / peak) * 100
+      })
+      return { asset, drawdowns, dates: prices.map((p) => p.date) }
     })
   })
 
@@ -255,6 +269,31 @@ export const useComparisonStore = defineStore('comparison', () => {
     loading.value = false
   }
 
+  // Auto-run: debounced watcher
+  let autoRunTimer: ReturnType<typeof setTimeout> | null = null
+  watch(
+    () => ({
+      ids: [...selectedIds.value],
+      range: timeRange.value,
+      start: customStartDate.value,
+      end: customEndDate.value,
+      div: showDividendAdjusted.value,
+    }),
+    () => {
+      if (!autoRun.value || !hasRun.value) return
+      if (loading.value) return
+      if (autoRunTimer) clearTimeout(autoRunTimer)
+      autoRunTimer = setTimeout(() => {
+        runComparison()
+      }, 800)
+    },
+    { deep: true },
+  )
+
+  watch(autoRun, (v) => {
+    localStorage.setItem('autoRun', String(v))
+  })
+
   return {
     selectedIds,
     customAssets,
@@ -267,11 +306,14 @@ export const useComparisonStore = defineStore('comparison', () => {
     errors,
     hasRun,
     showDividendAdjusted,
+    showDrawdown,
+    autoRun,
     displayCurrency,
     btcPrices,
     eurRate,
     selectedAssets,
     metrics,
+    drawdownData,
     addCustomAsset,
     removeCustomAsset,
     toggleAsset,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -18,10 +18,115 @@ import { useExport } from '@/composables/useExport'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
+// Crosshair plugin (same as ComparisonChart)
+const portfolioCrosshairPlugin = {
+  id: 'portfolioCrosshair',
+  afterEvent(chart: any, args: any) {
+    const event = args.event
+    if (event.type === 'mouseout') {
+      chart.$crosshairX = null
+      chart.draw()
+      return
+    }
+    if (event.type === 'click') {
+      if (chart.$pinnedIndex != null) {
+        chart.$pinnedIndex = null
+      } else {
+        const xScale = chart.scales.x
+        const idx = xScale.getValueForPixel(event.x)
+        if (idx != null && idx >= 0 && idx < chart.data.labels.length) {
+          chart.$pinnedIndex = Math.round(idx)
+        }
+      }
+      chart.draw()
+      return
+    }
+    if (chart.$pinnedIndex == null) {
+      chart.$crosshairX = event.x
+      chart.draw()
+    }
+  },
+  afterDraw(chart: any) {
+    const { ctx, chartArea } = chart
+    if (!chartArea) return
+
+    let xPixel: number | null = null
+    let dataIndex: number | null = null
+
+    if (chart.$pinnedIndex != null) {
+      const xScale = chart.scales.x
+      xPixel = xScale.getPixelForValue(chart.$pinnedIndex)
+      dataIndex = chart.$pinnedIndex
+    } else if (chart.$crosshairX != null) {
+      xPixel = chart.$crosshairX
+      const xScale = chart.scales.x
+      const idx = xScale.getValueForPixel(xPixel)
+      if (idx != null) dataIndex = Math.round(idx)
+    }
+
+    if (xPixel == null || xPixel < chartArea.left || xPixel > chartArea.right) return
+
+    // Draw vertical line
+    ctx.save()
+    ctx.beginPath()
+    ctx.moveTo(xPixel, chartArea.top)
+    ctx.lineTo(xPixel, chartArea.bottom)
+    ctx.lineWidth = 1
+    ctx.strokeStyle = chart.$pinnedIndex != null
+      ? getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#f7931a'
+      : (getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#999') + '88'
+    if (chart.$pinnedIndex != null) {
+      ctx.setLineDash([])
+    } else {
+      ctx.setLineDash([4, 3])
+    }
+    ctx.stroke()
+    ctx.restore()
+
+    // Update floating card
+    if (dataIndex != null && chart.canvas) {
+      const cardEl = chart.canvas.parentElement?.querySelector('.crosshair-card') as HTMLElement | null
+      if (cardEl) {
+        const label = chart.data.labels[dataIndex] || ''
+        let html = `<div class="crosshair-date">${label}</div>`
+        for (const ds of chart.data.datasets) {
+          const val = ds.data[dataIndex]
+          if (val == null) continue
+          const sign = val >= 0 ? '+' : ''
+          html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${ds.borderColor}"></span>${ds.label}: <strong>${sign}${val.toFixed(1)}%</strong></div>`
+        }
+        cardEl.innerHTML = html
+        cardEl.style.display = 'block'
+        const rect = chart.canvas.getBoundingClientRect()
+        const cardWidth = cardEl.offsetWidth || 160
+        let left = xPixel - cardWidth / 2
+        if (left < chartArea.left) left = chartArea.left
+        if (left + cardWidth > chartArea.right) left = chartArea.right - cardWidth
+        cardEl.style.left = `${left}px`
+      }
+    }
+  },
+}
+ChartJS.register(portfolioCrosshairPlugin)
+
 const store = usePortfolioStore()
 const { theme } = useTheme()
 const { exportPng } = useExport()
 const lineChart = ref<any>(null)
+
+// Reset pinned state when data changes
+watch(() => store.result, () => {
+  if (lineChart.value?.chart) {
+    lineChart.value.chart.$pinnedIndex = null
+  }
+})
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && lineChart.value?.chart?.$pinnedIndex != null) {
+    lineChart.value.chart.$pinnedIndex = null
+    lineChart.value.chart.draw()
+  }
+}
 
 function downloadPng() {
   if (lineChart.value?.chart?.canvas) {
@@ -158,7 +263,8 @@ const chartOptions = computed(() => {
         </span>
       </div>
     </div>
-    <div class="chart-container">
+    <div class="chart-container" @keydown="onKeydown" tabindex="0">
+      <div class="crosshair-card"></div>
       <Line ref="lineChart" :data="chartData" :options="chartOptions" />
     </div>
   </div>
@@ -235,6 +341,49 @@ h2 {
   background: var(--card-inner-bg, var(--bg));
   border-radius: 8px;
   padding: 0.75rem 0.5rem;
+}
+
+.crosshair-card {
+  display: none;
+  position: absolute;
+  top: 4px;
+  z-index: 10;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.72rem;
+  pointer-events: none;
+  min-width: 120px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.crosshair-card :deep(.crosshair-date) {
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+}
+
+.crosshair-card :deep(.crosshair-row) {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.crosshair-card :deep(.crosshair-dot) {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.crosshair-card :deep(strong) {
+  color: var(--text);
 }
 
 @media (max-width: 600px) {

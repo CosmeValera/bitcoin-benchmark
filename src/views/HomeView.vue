@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useComparisonStore } from '@/stores/comparison'
+import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import AssetSelector from '@/components/AssetSelector.vue'
 import TimeRangeSelector from '@/components/TimeRangeSelector.vue'
 import ComparisonChart from '@/components/ComparisonChart.vue'
@@ -14,6 +15,29 @@ function share() {
   copied.value = true
   setTimeout(() => { copied.value = false }, 2000)
 }
+
+useKeyboardShortcuts([
+  {
+    key: 'Enter',
+    ctrl: true,
+    action: () => { if (!store.loading) store.runComparison() },
+    description: 'Run comparison',
+  },
+  {
+    key: 'a',
+    ctrl: true,
+    shift: true,
+    action: () => { store.autoRun = !store.autoRun },
+    description: 'Toggle auto-run',
+  },
+  {
+    key: 'd',
+    ctrl: true,
+    shift: true,
+    action: () => { store.showDrawdown = !store.showDrawdown },
+    description: 'Toggle drawdowns',
+  },
+])
 
 onMounted(() => {
   store.initFromUrl()
@@ -71,6 +95,10 @@ onMounted(() => {
             <input type="checkbox" v-model="store.showDividendAdjusted" />
             Include dividend income
           </label>
+          <label class="toggle-label">
+            <input type="checkbox" v-model="store.showDrawdown" />
+            Show drawdowns
+          </label>
         </div>
       </div>
 
@@ -90,6 +118,14 @@ onMounted(() => {
             </svg>
             COMPARE {{ store.selectedIds.size }} ASSET{{ store.selectedIds.size !== 1 ? 'S' : '' }}
           </template>
+        </button>
+        <button
+          class="btn-auto"
+          :class="{ active: store.autoRun }"
+          @click="store.autoRun = !store.autoRun"
+          title="Auto-run comparison when parameters change"
+        >
+          Auto
         </button>
       </div>
     </section>
@@ -290,6 +326,33 @@ onMounted(() => {
 .btn-compare:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn-auto {
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.btn-auto:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+.btn-auto.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
 }
 
 .perf-actions {

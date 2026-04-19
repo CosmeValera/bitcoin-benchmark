@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   ASSETS,
   type Asset,
@@ -44,6 +44,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   const loading = ref(false)
   const errors = ref<Map<string, string>>(new Map())
   const hasRun = ref(false)
+  const autoRun = ref(localStorage.getItem('autoRunPortfolio') !== 'false')
 
   // Computed
   const totalWeight = computed(() => {
@@ -304,6 +305,30 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     }
   }
 
+  // Auto-run: debounced watcher
+  let autoRunTimer: ReturnType<typeof setTimeout> | null = null
+  watch(
+    () => ({
+      allocs: { ...allocations.value },
+      range: timeRange.value,
+      start: customStartDate.value,
+      end: customEndDate.value,
+    }),
+    () => {
+      if (!autoRun.value || !hasRun.value) return
+      if (loading.value) return
+      if (autoRunTimer) clearTimeout(autoRunTimer)
+      autoRunTimer = setTimeout(() => {
+        runPortfolio()
+      }, 800)
+    },
+    { deep: true },
+  )
+
+  watch(autoRun, (v) => {
+    localStorage.setItem('autoRunPortfolio', String(v))
+  })
+
   return {
     allocations,
     customAssets,
@@ -315,6 +340,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     loading,
     errors,
     hasRun,
+    autoRun,
     totalWeight,
     isValid,
     setWeight,
