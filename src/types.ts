@@ -89,15 +89,6 @@ export const ASSETS: Asset[] = [
     description: 'Europe\'s first Bitcoin Treasury Company (The Blockchain Group)',
     btcHoldings: 2925, // as of Apr 2026
   },
-  {
-    id: 'swc',
-    ticker: 'SWC.L',
-    name: 'Smarter Web Co.',
-    category: 'treasury',
-    color: '#10b981',
-    description: 'UK-based Bitcoin treasury company',
-    btcHoldings: 2706, // as of Feb 2026
-  },
 
   // Strategy Preferred Stock / Bonds
   {
@@ -163,20 +154,20 @@ export const ASSETS: Asset[] = [
     description: 'Nasdaq 100 index ETF',
   },
   {
+    id: 'stoxx50',
+    ticker: 'FEZ',
+    name: 'Euro Stoxx 50 (FEZ)',
+    category: 'index',
+    color: '#38bdf8',
+    description: 'SPDR EURO STOXX 50 ETF — tracks Europe\'s top 50 blue-chip stocks',
+  },
+  {
     id: 'gld',
     ticker: 'GLD',
     name: 'Gold (GLD)',
     category: 'index',
     color: '#eab308',
     description: 'SPDR Gold Shares ETF',
-  },
-  {
-    id: 'nvda',
-    ticker: 'NVDA',
-    name: 'NVIDIA (NVDA)',
-    category: 'index',
-    color: '#38bdf8',
-    description: 'NVIDIA Corporation stock',
   },
 ]
 

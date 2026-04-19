@@ -42,10 +42,10 @@ function onTickerKeydown(e: KeyboardEvent) {
 
 // Short display names for compact grid
 function shortName(name: string): string {
-  // Extract ticker from parentheses or use first word
+  // Extract ticker from parentheses, or use full name
   const match = name.match(/\(([^)]+)\)/)
   if (match) return match[1]
-  return name.length > 10 ? name.slice(0, 10) : name
+  return name
 }
 
 // Donut chart data
@@ -131,6 +131,7 @@ const CIRC = 2 * Math.PI * R
           :key="asset.id"
           class="asset-cell"
           :class="{ active: (store.allocations[asset.id] ?? 0) > 0 }"
+          :title="asset.description"
         >
           <div class="cell-top">
             <span class="dot" :style="{ background: asset.color }"></span>
@@ -163,7 +164,7 @@ const CIRC = 2 * Math.PI * R
           <input
             type="text"
             v-model="tickerInput"
-            placeholder="AAPL, ETH-USD, IBIT..."
+            placeholder="AAPL, ETH-USD, NVDA..."
             class="ticker-field"
             @keydown="onTickerKeydown"
           />
@@ -183,6 +184,7 @@ const CIRC = 2 * Math.PI * R
           :key="asset.id"
           class="asset-cell custom-cell"
           :class="{ active: (store.allocations[asset.id] ?? 0) > 0 }"
+          :title="asset.description"
         >
           <div class="cell-top">
             <span class="dot" :style="{ background: asset.color }"></span>
@@ -447,6 +449,7 @@ h3 {
   border-radius: 6px;
   border: 1px solid transparent;
   transition: all 0.15s;
+  cursor: default;
 }
 
 .asset-cell.active {
@@ -464,9 +467,6 @@ h3 {
   font-size: 0.75rem;
   font-weight: 500;
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .cell-value {
