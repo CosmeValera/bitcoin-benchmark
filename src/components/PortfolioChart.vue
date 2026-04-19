@@ -36,12 +36,22 @@ const chartData = computed(() => {
   const labelSet = new Set(labels)
 
   // Individual asset lines (thin, semi-transparent)
+  // Carry forward last known value so weekends/holidays don't create gaps
   const assetDatasets = assetData.map(({ asset, prices, normalizedReturns }) => {
     const dateToReturn = new Map<string, number>()
     for (let i = 0; i < prices.length; i++) {
       dateToReturn.set(prices[i].date, normalizedReturns[i])
     }
-    const data = labels.map((d) => dateToReturn.get(d) ?? null)
+    let lastVal: number | null = null
+    const data = labels.map((d) => {
+      const val = dateToReturn.get(d)
+      if (val != null) {
+        lastVal = val
+        return val
+      }
+      // Only carry forward if the asset has started trading
+      return lastVal
+    })
     return {
       label: asset.name,
       data,

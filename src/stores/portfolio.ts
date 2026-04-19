@@ -123,16 +123,25 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     // Union of all dates — show the full time range
     const allDates = [...allDateSet].sort()
 
-    // For each date, blend only the assets that exist on that date,
-    // redistributing weights proportionally among available assets
+    // For each date, blend assets using last known value for gaps (weekends/holidays).
+    // This avoids spikes when only BTC has data on a weekend.
     const blendedReturns: { date: string; value: number }[] = []
+    const lastKnown = new Map<string, number>() // asset id → last normalized return
 
     for (const date of allDates) {
-      // Find which assets have data on this date and their weights
+      // Update last known values for assets that have data today
+      for (const ad of assetResults) {
+        const ret = assetDateMaps.get(ad.asset.id)?.get(date)
+        if (ret != null) {
+          lastKnown.set(ad.asset.id, ret)
+        }
+      }
+
+      // Blend all assets that have ever had data (using carried-forward values)
       let availableWeightSum = 0
       const available: { weight: number; ret: number }[] = []
       for (const ad of assetResults) {
-        const ret = assetDateMaps.get(ad.asset.id)?.get(date)
+        const ret = lastKnown.get(ad.asset.id)
         if (ret != null) {
           const weight = normalizedWeights[ad.asset.id] ?? 0
           availableWeightSum += weight
