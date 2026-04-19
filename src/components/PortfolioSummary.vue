@@ -84,6 +84,7 @@ const cards = computed(() => {
 }
 
 .card-label {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.65rem;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -92,6 +93,7 @@ const cards = computed(() => {
 }
 
 .card-value {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 1.2rem;
   font-weight: 800;
   color: var(--text);

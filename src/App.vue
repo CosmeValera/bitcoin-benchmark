@@ -118,9 +118,10 @@ header {
 }
 
 .ticker-label {
+  font-family: 'JetBrains Mono', monospace;
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   letter-spacing: 0.03em;
 }
 
@@ -130,13 +131,15 @@ header {
 }
 
 .ticker-price {
+  font-family: 'JetBrains Mono', monospace;
   color: var(--text);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .ticker-change {
+  font-family: 'JetBrains Mono', monospace;
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
 }
 
 .ticker-change.up {
@@ -184,6 +187,7 @@ header {
 }
 
 h1 {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
@@ -243,12 +247,14 @@ footer {
 }
 
 .footer-disclaimer {
+  font-family: 'JetBrains Mono', monospace;
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   margin: 0 0 0.35rem;
 }
 
 .footer-brand {
+  font-family: 'JetBrains Mono', monospace;
   color: var(--text-muted);
   font-size: 0.7rem;
   margin: 0;

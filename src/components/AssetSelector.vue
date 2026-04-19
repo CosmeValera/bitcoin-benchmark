@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useComparisonStore } from '@/stores/comparison'
 import { ASSETS, ASSET_CATEGORIES } from '@/types'
+import { useTickerSearch } from '@/composables/useTickerSearch'
 
 const store = useComparisonStore()
+const { suggestions, searching, search, clear, validateTicker } = useTickerSearch()
 
 const tickerInput = ref('')
 const addError = ref('')
+const validating = ref(false)
+const showDropdown = ref(false)
 
 function assetsForCategory(key: string) {
   return ASSETS.filter((a) => a.category === key)
@@ -24,20 +28,74 @@ function deselectAll(key: string) {
   })
 }
 
-function addTicker() {
+watch(tickerInput, (val) => {
   addError.value = ''
-  const ticker = tickerInput.value.trim()
-  if (!ticker) return
-  const ok = store.addCustomAsset(ticker)
+  if (val.trim().length > 0) {
+    showDropdown.value = true
+    search(val)
+  } else {
+    showDropdown.value = false
+    clear()
+  }
+})
+
+async function addTickerWithValidation(ticker: string) {
+  addError.value = ''
+  const normalized = ticker.trim().toUpperCase()
+  if (!normalized) return
+
+  if (ASSETS.some((a) => a.ticker.toUpperCase() === normalized)) {
+    addError.value = `"${normalized}" is already a built-in asset`
+    return
+  }
+  if (store.customAssets.some((a) => a.ticker.toUpperCase() === normalized)) {
+    addError.value = `"${normalized}" already added`
+    return
+  }
+
+  validating.value = true
+  showDropdown.value = false
+  clear()
+
+  const valid = await validateTicker(normalized)
+  validating.value = false
+
+  if (!valid) {
+    addError.value = `"${normalized}" not found, check the ticker symbol`
+    return
+  }
+
+  const ok = store.addCustomAsset(normalized)
   if (ok) {
     tickerInput.value = ''
   } else {
-    addError.value = `"${ticker.toUpperCase()}" already exists`
+    addError.value = `"${normalized}" already exists`
   }
 }
 
+function selectSuggestion(symbol: string) {
+  tickerInput.value = symbol
+  showDropdown.value = false
+  clear()
+  addTickerWithValidation(symbol)
+}
+
 function onTickerKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter') addTicker()
+  if (e.key === 'Enter') {
+    showDropdown.value = false
+    clear()
+    addTickerWithValidation(tickerInput.value)
+  }
+  if (e.key === 'Escape') {
+    showDropdown.value = false
+    clear()
+  }
+}
+
+function onTickerBlur() {
+  setTimeout(() => {
+    showDropdown.value = false
+  }, 200)
 }
 </script>
 
@@ -99,9 +157,34 @@ function onTickerKeydown(e: KeyboardEvent) {
               placeholder="Add ticker (e.g. TSLA)"
               class="ticker-input"
               @keydown="onTickerKeydown"
+              @blur="onTickerBlur"
+              autocomplete="off"
             />
-            <button class="add-btn" @click="addTicker" :disabled="!tickerInput.trim()">Add</button>
+            <button
+              class="add-btn"
+              @click="addTickerWithValidation(tickerInput)"
+              :disabled="!tickerInput.trim() || validating"
+            >
+              <span v-if="validating" class="btn-spinner"></span>
+              <template v-else>Add</template>
+            </button>
           </div>
+
+          <!-- Autocomplete dropdown -->
+          <div v-if="showDropdown && (suggestions.length > 0 || searching)" class="ticker-dropdown">
+            <div v-if="searching && suggestions.length === 0" class="dropdown-loading">Searching...</div>
+            <button
+              v-for="s in suggestions"
+              :key="s.symbol"
+              class="dropdown-item"
+              @mousedown.prevent="selectSuggestion(s.symbol)"
+            >
+              <span class="dropdown-symbol">{{ s.symbol }}</span>
+              <span class="dropdown-name">{{ s.name }}</span>
+              <span class="dropdown-type">{{ s.type }}</span>
+            </button>
+          </div>
+
           <span v-if="addError" class="add-error">{{ addError }}</span>
         </div>
       </div>
@@ -124,6 +207,7 @@ function onTickerKeydown(e: KeyboardEvent) {
 }
 
 h3 {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -210,12 +294,6 @@ h3 {
   opacity: 1;
 }
 
-.add-ticker {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
 .add-ticker-input-wrap {
   display: flex;
   align-items: center;
@@ -275,6 +353,90 @@ h3 {
   color: #ef4444;
   font-size: 0.7rem;
   padding-left: 0.5rem;
+}
+
+.add-ticker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ticker-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-width: 280px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  z-index: 20;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.dropdown-loading {
+  padding: 0.6rem 0.8rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.8rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.dropdown-item:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.dropdown-symbol {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: var(--accent);
+  min-width: 50px;
+}
+
+.dropdown-name {
+  flex: 1;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+}
+
+.dropdown-type {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.6;
+  letter-spacing: 0.04em;
+}
+
+.btn-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 500px) {

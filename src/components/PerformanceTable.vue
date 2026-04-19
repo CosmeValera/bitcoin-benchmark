@@ -196,6 +196,7 @@ table {
 }
 
 th {
+  font-family: 'JetBrains Mono', monospace;
   text-align: left;
   font-size: 0.65rem;
   font-weight: 600;

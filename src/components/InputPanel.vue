@@ -100,6 +100,7 @@ function handleSubmit() {
 }
 
 label {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-muted);
@@ -126,6 +127,7 @@ select:focus {
 }
 
 .btn-primary {
+  font-family: 'JetBrains Mono', monospace;
   width: 100%;
   padding: 0.85rem;
   border: none;

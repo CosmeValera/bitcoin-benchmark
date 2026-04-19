@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio'
 import { ASSETS, ASSET_CATEGORIES } from '@/types'
+import { useTickerSearch } from '@/composables/useTickerSearch'
 
 const store = usePortfolioStore()
+const { suggestions, searching, search, clear, validateTicker } = useTickerSearch()
 
 const presets: { label: string; weights: Record<string, number> }[] = [
   { label: '100% BTC', weights: { btc: 100 } },
@@ -14,6 +16,8 @@ const presets: { label: string; weights: Record<string, number> }[] = [
 
 const tickerInput = ref('')
 const addError = ref('')
+const validating = ref(false)
+const showDropdown = ref(false)
 
 function onInput(id: string, event: Event) {
   const val = parseFloat((event.target as HTMLInputElement).value) || 0
@@ -24,20 +28,83 @@ function assetsForCategory(key: string) {
   return ASSETS.filter((a) => a.category === key)
 }
 
-function addTicker() {
+watch(tickerInput, (val) => {
   addError.value = ''
-  const ticker = tickerInput.value.trim()
-  if (!ticker) return
-  const ok = store.addCustomAsset(ticker)
+  if (val.trim().length > 0) {
+    showDropdown.value = true
+    search(val)
+  } else {
+    showDropdown.value = false
+    clear()
+  }
+})
+
+async function addTickerWithValidation(ticker: string) {
+  addError.value = ''
+  const normalized = ticker.trim().toUpperCase()
+  if (!normalized) return
+
+  // Check if already exists
+  if (ASSETS.some((a) => a.ticker.toUpperCase() === normalized)) {
+    addError.value = `"${normalized}" is already a built-in asset`
+    return
+  }
+  if (store.customAssets.some((a) => a.ticker.toUpperCase() === normalized)) {
+    addError.value = `"${normalized}" already added`
+    return
+  }
+
+  validating.value = true
+  showDropdown.value = false
+  clear()
+
+  const valid = await validateTicker(normalized)
+  validating.value = false
+
+  if (!valid) {
+    addError.value = `"${normalized}" not found, check the ticker symbol`
+    return
+  }
+
+  const ok = store.addCustomAsset(normalized)
   if (ok) {
     tickerInput.value = ''
   } else {
-    addError.value = `"${ticker.toUpperCase()}" already exists`
+    addError.value = `"${normalized}" already exists`
   }
 }
 
+function selectSuggestion(symbol: string) {
+  tickerInput.value = symbol
+  showDropdown.value = false
+  clear()
+  addTickerWithValidation(symbol)
+}
+
 function onTickerKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter') addTicker()
+  if (e.key === 'Enter') {
+    showDropdown.value = false
+    clear()
+    addTickerWithValidation(tickerInput.value)
+  }
+  if (e.key === 'Escape') {
+    showDropdown.value = false
+    clear()
+  }
+}
+
+function onTickerBlur() {
+  // Delay to allow click on suggestion
+  setTimeout(() => {
+    showDropdown.value = false
+  }, 200)
+}
+
+function sliderStyle(color: string, value: number) {
+  return {
+    '--slider-color': color,
+    background: `linear-gradient(to right, ${color} ${value}%, var(--slider-track) ${value}%)`,
+  }
 }
 
 // Short display names for compact grid
@@ -160,7 +227,7 @@ const CIRC = 2 * Math.PI * R
             max="100"
             step="5"
             class="cell-slider"
-            :style="{ '--slider-color': asset.color } as any"
+            :style="sliderStyle(asset.color, store.allocations[asset.id] ?? 0)"
             :value="store.allocations[asset.id]"
             @input="onInput(asset.id, $event)"
           />
@@ -182,13 +249,41 @@ const CIRC = 2 * Math.PI * R
             placeholder="AAPL, ETH-USD, NVDA..."
             class="ticker-field"
             @keydown="onTickerKeydown"
+            @blur="onTickerBlur"
+            @focus="tickerInput.trim() && (showDropdown = true)"
+            autocomplete="off"
           />
+          <!-- Autocomplete dropdown -->
+          <div v-if="showDropdown && (suggestions.length > 0 || searching)" class="autocomplete-dropdown">
+            <div v-if="searching && suggestions.length === 0" class="autocomplete-loading">
+              Searching...
+            </div>
+            <button
+              v-for="s in suggestions"
+              :key="s.symbol"
+              class="autocomplete-item"
+              @mousedown.prevent="selectSuggestion(s.symbol)"
+            >
+              <span class="ac-symbol">{{ s.symbol }}</span>
+              <span class="ac-name">{{ s.name }}</span>
+              <span class="ac-type">{{ s.type }}</span>
+            </button>
+          </div>
         </div>
-        <button class="add-btn" @click="addTicker" :disabled="!tickerInput.trim()">
-          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-            <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-          </svg>
-          Add
+        <button
+          class="add-btn"
+          @click="addTickerWithValidation(tickerInput)"
+          :disabled="!tickerInput.trim() || validating"
+        >
+          <template v-if="validating">
+            <span class="mini-spinner"></span>
+          </template>
+          <template v-else>
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+              <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+            </svg>
+            Add
+          </template>
         </button>
       </div>
       <span v-if="addError" class="add-error">{{ addError }}</span>
@@ -219,7 +314,7 @@ const CIRC = 2 * Math.PI * R
             max="100"
             step="5"
             class="cell-slider"
-            :style="{ '--slider-color': asset.color } as any"
+            :style="sliderStyle(asset.color, store.allocations[asset.id] ?? 0)"
             :value="store.allocations[asset.id] ?? 0"
             @input="onInput(asset.id, $event)"
           />
@@ -278,7 +373,8 @@ h2 {
 }
 
 .donut-stats-label {
-  font-size: 0.6rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -286,6 +382,7 @@ h2 {
 }
 
 .donut-stats-value {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 1.25rem;
   font-weight: 800;
   color: var(--accent);
@@ -323,7 +420,8 @@ h2 {
 }
 
 .donut-count {
-  font-size: 0.55rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.5rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -374,6 +472,7 @@ h2 {
   color: var(--text-muted);
   pointer-events: none;
   opacity: 0.5;
+  z-index: 1;
 }
 
 .ticker-field {
@@ -381,10 +480,10 @@ h2 {
   padding: 0.35rem 0.5rem 0.35rem 1.75rem;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--input-bg, var(--card-bg));
+  background: var(--card-inner-bg);
   color: var(--text);
   font-size: 0.78rem;
-  font-family: inherit;
+  font-family: 'JetBrains Mono', monospace;
   text-transform: uppercase;
   transition: border-color 0.15s;
 }
@@ -393,11 +492,86 @@ h2 {
   text-transform: none;
   color: var(--text-muted);
   opacity: 0.6;
+  font-family: 'Inter', sans-serif;
 }
 
 .ticker-field:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+/* Autocomplete dropdown */
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  z-index: 50;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.autocomplete-loading {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.autocomplete-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.autocomplete-item:hover {
+  background: var(--card-inner-bg);
+}
+
+.autocomplete-item:not(:last-child) {
+  border-bottom: 1px solid var(--td-border);
+}
+
+.ac-symbol {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--accent);
+  min-width: 65px;
+}
+
+.ac-name {
+  flex: 1;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ac-type {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  opacity: 0.6;
+  text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .add-btn {
@@ -426,9 +600,22 @@ h2 {
   cursor: not-allowed;
 }
 
+.mini-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .add-error {
   font-size: 0.7rem;
-  color: var(--red, #ef4444);
+  color: var(--red);
   display: block;
   margin-top: 0.2rem;
 }
@@ -456,15 +643,16 @@ h2 {
 
 .remove-btn:hover {
   opacity: 1;
-  color: var(--red, #ef4444);
+  color: var(--red);
 }
 
 /* Asset categories */
 h3 {
-  font-size: 0.7rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
   margin: 0 0 0.35rem;
 }
@@ -482,13 +670,14 @@ h3 {
 
 /* Ticker badge */
 .ticker-badge {
-  font-size: 0.6rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
   font-weight: 600;
   color: var(--text-muted);
   background: var(--card-inner-bg, var(--bg));
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 0.05rem 0.3rem;
+  padding: 0.1rem 0.35rem;
   letter-spacing: 0.02em;
   white-space: nowrap;
   line-height: 1.3;
@@ -530,7 +719,8 @@ h3 {
 }
 
 .cell-value {
-  font-size: 0.7rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
   min-width: 26px;
@@ -544,9 +734,41 @@ h3 {
 
 /* Colored range slider */
 .cell-slider {
+  -webkit-appearance: none;
+  appearance: none;
   width: 100%;
-  height: 14px;
-  accent-color: var(--slider-color, var(--accent));
+  height: 12px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.cell-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--slider-thumb);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.cell-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--slider-thumb);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.cell-slider::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: transparent;
 }
 
 @media (max-width: 500px) {

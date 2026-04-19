@@ -117,6 +117,7 @@ const lumpCards = computed(() => {
 }
 
 .strategy-section h3 {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -141,6 +142,7 @@ const lumpCards = computed(() => {
 }
 
 .card-label {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.65rem;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -149,6 +151,7 @@ const lumpCards = computed(() => {
 }
 
 .card-value {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 1.1rem;
   font-weight: 800;
   color: var(--text);

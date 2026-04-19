@@ -147,6 +147,7 @@ onMounted(() => {
 }
 
 .section-num {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -180,13 +181,13 @@ onMounted(() => {
 }
 
 .range-btn {
+  font-family: 'JetBrains Mono', monospace;
   padding: 0.3rem 0.6rem;
   border-radius: 20px;
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-muted);
   font-size: 0.75rem;
-  font-family: inherit;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
@@ -244,6 +245,7 @@ onMounted(() => {
 }
 
 .btn-run {
+  font-family: 'JetBrains Mono', monospace;
   flex: 1;
   padding: 0.85rem;
   border: none;
@@ -252,7 +254,6 @@ onMounted(() => {
   color: #fff;
   font-size: 0.85rem;
   font-weight: 700;
-  font-family: inherit;
   cursor: pointer;
   transition: background 0.2s;
   display: flex;

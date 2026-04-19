@@ -205,6 +205,7 @@ h2 {
 }
 
 .legend-item {
+  font-family: 'JetBrains Mono', monospace;
   display: flex;
   align-items: center;
   gap: 0.3rem;
