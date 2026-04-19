@@ -4,123 +4,169 @@ import { useSimulationStore } from '@/stores/simulation'
 
 const store = useSimulationStore()
 
-const cards = computed(() => {
+const dcaCards = computed(() => {
   const r = store.result
   if (!r) return []
-
   return [
     {
-      label: 'DCA Total Invested',
+      label: 'Total Invested',
       value: store.formatCurrency(r.dcaTotalInvested[r.dcaTotalInvested.length - 1]),
-      accent: false,
+      sub: 'DCA strategy',
+      positive: false,
+      negative: false,
     },
     {
-      label: 'DCA Portfolio Value',
+      label: 'Portfolio Value',
       value: store.formatCurrency(r.dcaFinalValue),
-      accent: true,
+      sub: 'Current worth',
+      positive: true,
+      negative: false,
     },
     {
-      label: 'DCA ROI',
+      label: 'ROI',
       value: `${r.dcaROI >= 0 ? '+' : ''}${r.dcaROI.toFixed(1)}%`,
-      accent: r.dcaROI >= 0,
+      sub: 'Return on investment',
+      positive: r.dcaROI >= 0,
       negative: r.dcaROI < 0,
     },
     {
-      label: 'DCA BTC Accumulated',
+      label: 'BTC Accumulated',
       value: `₿ ${store.formatBtc(r.dcaBtcAccumulated)}`,
-      accent: false,
+      sub: 'Total holdings',
+      positive: false,
+      negative: false,
     },
+  ]
+})
+
+const lumpCards = computed(() => {
+  const r = store.result
+  if (!r) return []
+  return [
     {
-      label: 'Lump Sum Invested',
+      label: 'Total Invested',
       value: store.formatCurrency(r.lumpSumTotalInvested),
-      accent: false,
+      sub: 'Lump sum',
+      positive: false,
+      negative: false,
     },
     {
-      label: 'Lump Sum Portfolio Value',
+      label: 'Portfolio Value',
       value: store.formatCurrency(r.lumpSumFinalValue),
-      accent: true,
+      sub: 'Current worth',
+      positive: true,
+      negative: false,
     },
     {
-      label: 'Lump Sum ROI',
+      label: 'ROI',
       value: `${r.lumpSumROI >= 0 ? '+' : ''}${r.lumpSumROI.toFixed(1)}%`,
-      accent: r.lumpSumROI >= 0,
+      sub: 'Return on investment',
+      positive: r.lumpSumROI >= 0,
       negative: r.lumpSumROI < 0,
     },
     {
-      label: 'Lump Sum BTC',
+      label: 'BTC Accumulated',
       value: `₿ ${store.formatBtc(r.lumpSumBtcAccumulated)}`,
-      accent: false,
+      sub: 'Total holdings',
+      positive: false,
+      negative: false,
     },
   ]
 })
 </script>
 
 <template>
-  <section v-if="store.hasRun && store.result" class="results-summary">
-    <h2>Results</h2>
-    <div class="cards-grid">
-      <div
-        v-for="card in cards"
-        :key="card.label"
-        class="card"
-        :class="{ positive: card.accent, negative: card.negative }"
-      >
-        <span class="card-label">{{ card.label }}</span>
-        <span class="card-value">{{ card.value }}</span>
+  <div v-if="store.hasRun && store.result" class="results-summary">
+    <div class="strategy-section">
+      <h3>DCA Strategy</h3>
+      <div class="cards-grid">
+        <div
+          v-for="card in dcaCards"
+          :key="card.label"
+          class="card"
+        >
+          <span class="card-label">{{ card.label }}</span>
+          <span class="card-value" :class="{ positive: card.positive, negative: card.negative }">{{ card.value }}</span>
+          <span class="card-sub">{{ card.sub }}</span>
+        </div>
       </div>
     </div>
-  </section>
+
+    <div class="strategy-section">
+      <h3>Lump Sum Strategy</h3>
+      <div class="cards-grid">
+        <div
+          v-for="card in lumpCards"
+          :key="card.label"
+          class="card"
+        >
+          <span class="card-label">{{ card.label }}</span>
+          <span class="card-value" :class="{ positive: card.positive, negative: card.negative }">{{ card.value }}</span>
+          <span class="card-sub">{{ card.sub }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
 .results-summary {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 1.5rem;
-  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-h2 {
-  margin: 0 0 1.25rem;
-  font-size: 1.125rem;
+.strategy-section h3 {
+  font-size: 0.7rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
 }
 
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .card {
-  background: var(--card-inner-bg);
+  background: var(--card-inner-bg, var(--bg));
   border-radius: 8px;
-  padding: 1rem;
+  padding: 0.85rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.2rem;
 }
 
 .card-label {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  font-weight: 500;
+  letter-spacing: 0.06em;
+  font-weight: 600;
 }
 
 .card-value {
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
-.card.positive .card-value {
+.card-value.positive {
   color: var(--green);
 }
 
-.card.negative .card-value {
+.card-value.negative {
   color: var(--red);
+}
+
+.card-sub {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  opacity: 0.7;
 }
 
 @media (max-width: 768px) {

@@ -75,9 +75,12 @@ function fmtHoldings(n: number | undefined): string {
 </script>
 
 <template>
-  <section v-if="store.hasRun && store.metrics.length" class="perf-table">
+  <div v-if="store.hasRun && store.metrics.length" class="perf-table">
     <div class="table-header">
-      <h2>Performance Metrics</h2>
+      <div class="table-title-area">
+        <h2>Performance Metrics</h2>
+        <p class="table-subtitle">Sortable breakdown of each selected asset.</p>
+      </div>
       <button class="export-btn" @click="exportCsv(store.metrics)" title="Download CSV">CSV</button>
     </div>
     <div class="table-wrap">
@@ -122,28 +125,40 @@ function fmtHoldings(n: number | undefined): string {
     <div v-if="store.errors.size > 0" class="errors">
       <p v-for="[id, msg] in store.errors" :key="id" class="error-line">{{ msg }}</p>
     </div>
-  </section>
+  </div>
 </template>
 
 <style scoped>
 .perf-table {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 1.5rem;
-  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .table-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.table-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 h2 {
   margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.table-subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 
 .export-btn {
@@ -159,6 +174,7 @@ h2 {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   transition: all 0.15s;
+  flex-shrink: 0;
 }
 
 .export-btn:hover {
@@ -168,6 +184,9 @@ h2 {
 
 .table-wrap {
   overflow-x: auto;
+  background: var(--card-inner-bg, var(--bg));
+  border-radius: 8px;
+  padding: 0.25rem;
 }
 
 table {
@@ -178,12 +197,12 @@ table {
 
 th {
   text-align: left;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
-  padding: 0.5rem 0.75rem;
+  padding: 0.6rem 0.75rem;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
@@ -203,6 +222,10 @@ td {
   white-space: nowrap;
 }
 
+tr:last-child td {
+  border-bottom: none;
+}
+
 .col-num {
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -212,7 +235,7 @@ td {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .dot {
@@ -231,7 +254,7 @@ td {
 }
 
 .errors {
-  margin-top: 0.75rem;
+  margin-top: 0.25rem;
 }
 
 .error-line {

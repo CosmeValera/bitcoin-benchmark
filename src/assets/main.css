@@ -21,6 +21,7 @@
   --td-border: rgba(148, 163, 184, 0.08);
   --red: #ef4444;
   --warning: #f59e0b;
+  --aurora-opacity: 1;
   color-scheme: dark;
 }
 
@@ -46,6 +47,7 @@
   --td-border: rgba(100, 116, 139, 0.1);
   --red: #dc2626;
   --warning: #d97706;
+  --aurora-opacity: 0.45;
   color-scheme: light;
 }
 
@@ -62,9 +64,72 @@ body {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  position: relative;
+  overflow-x: hidden;
 }
 
 ::selection {
   background: var(--accent);
   color: #fff;
+}
+
+/* Aurora gradient band at top of page */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    #22c55e 0%,
+    #22c55e 15%,
+    #eab308 35%,
+    #f7931a 55%,
+    #ef4444 75%,
+    #ec4899 100%
+  );
+  z-index: 10;
+  opacity: var(--aurora-opacity);
+}
+
+/* Soft glow beneath the aurora line */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 350px;
+  background: linear-gradient(
+    90deg,
+    rgba(34, 197, 94, 0.18) 0%,
+    rgba(34, 197, 94, 0.10) 15%,
+    rgba(234, 179, 8, 0.08) 30%,
+    rgba(247, 147, 26, 0.14) 50%,
+    rgba(239, 68, 68, 0.08) 75%,
+    rgba(236, 72, 153, 0.06) 100%
+  );
+  mask-image: linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.4) 40%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.4) 40%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--aurora-opacity);
+  animation: aurora-breathe 8s ease-in-out infinite alternate;
+}
+
+@keyframes aurora-breathe {
+  0% {
+    opacity: calc(var(--aurora-opacity) * 0.75);
+  }
+  100% {
+    opacity: var(--aurora-opacity);
+  }
+}
+
+/* Ensure content is above the glow */
+#app {
+  position: relative;
+  z-index: 1;
 }

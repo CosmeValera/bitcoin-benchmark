@@ -10,7 +10,10 @@ function handleSubmit() {
 
 <template>
   <section class="input-panel">
-    <h2>Simulation Parameters</h2>
+    <div class="panel-title-area">
+      <h2>Simulation Parameters</h2>
+      <p class="panel-subtitle">Configure your DCA strategy and compare against lump sum investing.</p>
+    </div>
     <form @submit.prevent="handleSubmit">
       <div class="form-grid">
         <div class="field">
@@ -35,7 +38,7 @@ function handleSubmit() {
         </div>
 
         <div class="field">
-          <label for="frequency">Frequency (days)</label>
+          <label for="frequency">Frequency</label>
           <select id="frequency" v-model.number="store.frequencyDays">
             <option :value="1">Daily</option>
             <option :value="7">Weekly</option>
@@ -46,7 +49,16 @@ function handleSubmit() {
       </div>
 
       <button type="submit" class="btn-primary" :disabled="store.loading">
-        {{ store.loading ? 'Loading...' : 'Run Simulation' }}
+        <template v-if="store.loading">
+          <span class="spinner"></span>
+          Loading...
+        </template>
+        <template v-else>
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+          </svg>
+          RUN SIMULATION
+        </template>
       </button>
     </form>
 
@@ -56,16 +68,22 @@ function handleSubmit() {
 
 <style scoped>
 .input-panel {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 1.5rem;
-  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-h2 {
-  margin: 0 0 1.25rem;
-  font-size: 1.125rem;
-  font-weight: 600;
+.panel-title-area h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.2rem;
+  letter-spacing: -0.01em;
+}
+
+.panel-subtitle {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 .form-grid {
@@ -82,11 +100,11 @@ h2 {
 }
 
 label {
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: 0.7rem;
+  font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
 }
 
 input,
@@ -109,15 +127,22 @@ select:focus {
 
 .btn-primary {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.85rem;
   border: none;
   border-radius: 8px;
   background: var(--accent);
   color: #fff;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: inherit;
   cursor: pointer;
   transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -129,10 +154,25 @@ select:focus {
   cursor: not-allowed;
 }
 
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .error {
   color: var(--red);
-  margin-top: 0.75rem;
-  font-size: 0.875rem;
+  margin: 0;
+  font-size: 0.85rem;
 }
 
 @media (max-width: 500px) {

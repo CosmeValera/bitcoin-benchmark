@@ -48,7 +48,6 @@ const chartData = computed(() => {
   const labels = allDates.filter(
     (_, i) => i % step === 0 || i === allDates.length - 1,
   )
-  const labelSet = new Set(labels)
 
   const datasets = store.assetsData.map(({ asset, prices, normalizedReturns }) => {
     // Map date → normalized return for this asset, optionally adjusted for dividends
@@ -152,49 +151,50 @@ const chartOptions = computed(() => {
 </script>
 
 <template>
-  <section v-if="store.hasRun && store.assetsData.length" class="chart-panel">
+  <div v-if="store.hasRun && store.assetsData.length" class="chart-wrap">
     <div class="chart-header">
-      <h2>Performance Comparison</h2>
-      <div class="chart-header-right">
-        <span class="chart-hint">Normalized returns from start date</span>
-        <button class="export-btn" @click="downloadPng" title="Download PNG">PNG</button>
+      <div class="chart-title-area">
+        <h2>Performance Comparison</h2>
+        <p class="chart-subtitle">Normalized returns from start date.</p>
       </div>
+      <button class="export-btn" @click="downloadPng" title="Download PNG">PNG</button>
     </div>
     <div class="chart-container">
       <Line ref="lineChart" :data="chartData" :options="chartOptions" />
     </div>
-  </section>
+  </div>
 </template>
 
 <style scoped>
-.chart-panel {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 1.5rem;
-  border: 1px solid var(--border);
+.chart-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .chart-header {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  gap: 1rem;
 }
 
-.chart-header-right {
+.chart-title-area {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 h2 {
   margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
-.chart-hint {
-  font-size: 0.75rem;
+.chart-subtitle {
+  margin: 0;
+  font-size: 0.78rem;
   color: var(--text-muted);
 }
 
@@ -211,6 +211,7 @@ h2 {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   transition: all 0.15s;
+  flex-shrink: 0;
 }
 
 .export-btn:hover {
@@ -219,8 +220,11 @@ h2 {
 }
 
 .chart-container {
-  height: 420px;
+  height: 380px;
   position: relative;
+  background: var(--card-inner-bg, var(--bg));
+  border-radius: 8px;
+  padding: 0.75rem 0.5rem;
 }
 
 @media (max-width: 600px) {
@@ -228,9 +232,8 @@ h2 {
     flex-direction: column;
     gap: 0.25rem;
   }
-
   .chart-container {
-    height: 300px;
+    height: 280px;
   }
 }
 </style>

@@ -17,11 +17,14 @@ function formatPrice(p: number): string {
       <div class="header-content">
         <div class="header-top">
           <div class="logo">
-            <span class="logo-icon">₿</span>
-            <h1>Bitcoin Finance Lab</h1>
+            <span class="logo-icon">B</span>
+            <h1><span class="logo-btc">Bitcoin</span> Finance Lab</h1>
           </div>
           <div class="header-right">
             <div v-if="price != null" class="btc-ticker">
+              <span class="ticker-live-dot"></span>
+              <span class="ticker-label">LIVE</span>
+              <span class="ticker-sep">·</span>
               <span class="ticker-label">BTC</span>
               <span class="ticker-price">{{ formatPrice(price) }}</span>
               <span
@@ -29,7 +32,7 @@ function formatPrice(p: number): string {
                 class="ticker-change"
                 :class="change24h >= 0 ? 'up' : 'down'"
               >
-                {{ change24h >= 0 ? '+' : '' }}{{ change24h.toFixed(1) }}%
+                {{ change24h >= 0 ? '+' : '' }}{{ change24h.toFixed(2) }}%
               </span>
             </div>
             <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
@@ -39,7 +42,7 @@ function formatPrice(p: number): string {
           </div>
         </div>
         <p class="subtitle">
-          Build portfolios, benchmark assets, and simulate DCA strategies with real market data
+          Build portfolios, benchmark assets, and simulate DCA strategies with real market data.
         </p>
         <nav class="nav-tabs">
           <RouterLink to="/" class="tab">Portfolio Builder</RouterLink>
@@ -54,12 +57,8 @@ function formatPrice(p: number): string {
     </main>
 
     <footer>
-      <p>
-        Market data via Yahoo Finance.
-        Built with <a href="https://vuejs.org/" target="_blank" rel="noopener">Vue 3</a>,
-        <a href="https://pinia.vuejs.org/" target="_blank" rel="noopener">Pinia</a> &amp;
-        <a href="https://www.chartjs.org/" target="_blank" rel="noopener">Chart.js</a>.
-      </p>
+      <p class="footer-disclaimer">Built for educational purposes · Not financial advice · Powered by real market data</p>
+      <p class="footer-brand">Bitcoin Finance Lab · v1.0</p>
     </footer>
   </div>
 </template>
@@ -91,7 +90,7 @@ header {
 .logo {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.75rem;
 }
 
 .header-right {
@@ -105,16 +104,29 @@ header {
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.7rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
 }
 
+.ticker-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  flex-shrink: 0;
+}
+
 .ticker-label {
-  color: #f7931a;
-  font-weight: 700;
-  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+}
+
+.ticker-sep {
+  color: var(--text-muted);
+  opacity: 0.5;
 }
 
 .ticker-price {
@@ -128,11 +140,11 @@ header {
 }
 
 .ticker-change.up {
-  color: #22c55e;
+  color: var(--green);
 }
 
 .ticker-change.down {
-  color: #ef4444;
+  color: var(--red);
 }
 
 .theme-toggle {
@@ -156,20 +168,35 @@ header {
 }
 
 .logo-icon {
-  font-size: 1.75rem;
-  color: #f7931a;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f7931a, #e8860f);
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 0 20px rgba(247, 147, 26, 0.3);
+  flex-shrink: 0;
 }
 
 h1 {
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.logo-btc {
+  color: var(--accent);
 }
 
 .subtitle {
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   margin: 0;
 }
 
@@ -177,7 +204,6 @@ h1 {
   display: flex;
   gap: 0;
   margin-top: 1rem;
-  border-bottom: 1px solid var(--border);
 }
 
 .tab {
@@ -187,7 +213,6 @@ h1 {
   color: var(--text-muted);
   text-decoration: none;
   border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
   transition: all 0.15s;
 }
 
@@ -214,17 +239,21 @@ main {
 footer {
   border-top: 1px solid var(--border);
   text-align: center;
-  padding: 1.25rem;
+  padding: 1.5rem;
+}
+
+.footer-disclaimer {
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  margin: 0 0 0.35rem;
 }
 
-footer a {
-  color: var(--accent);
-  text-decoration: none;
-}
-
-footer a:hover {
-  text-decoration: underline;
+.footer-brand {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
 }
 </style>

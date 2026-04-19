@@ -170,31 +170,58 @@ const chartOptions = computed(() => {
 </script>
 
 <template>
-  <section v-if="store.hasRun && store.prices.length" class="chart-panel">
-    <h2>Bitcoin Price &amp; Portfolio Value</h2>
+  <div v-if="store.hasRun && store.prices.length" class="chart-wrap">
+    <div class="chart-header">
+      <div class="chart-title-area">
+        <h2>Bitcoin Price &amp; Portfolio Value</h2>
+        <p class="chart-subtitle">BTC price overlaid with DCA and lump sum portfolio growth.</p>
+      </div>
+    </div>
     <div class="chart-container">
       <Line :data="chartData" :options="chartOptions" />
     </div>
-  </section>
+  </div>
 </template>
 
 <style scoped>
-.chart-panel {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 1.5rem;
-  border: 1px solid var(--border);
+.chart-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.chart-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 h2 {
-  margin: 0 0 1rem;
-  font-size: 1.125rem;
-  font-weight: 600;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.chart-subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 
 .chart-container {
   height: 380px;
   position: relative;
+  background: var(--card-inner-bg, var(--bg));
+  border-radius: 8px;
+  padding: 0.75rem 0.5rem;
 }
 
 @media (max-width: 500px) {

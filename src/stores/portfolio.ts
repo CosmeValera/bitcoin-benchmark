@@ -22,6 +22,8 @@ export interface PortfolioResult {
   totalReturn: number
   volatility: number
   maxDrawdown: number
+  maxDrawdownDate: string
+  sharpeRatio: number
 }
 
 export const usePortfolioStore = defineStore('portfolio', () => {
@@ -215,11 +217,22 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     // Max drawdown
     let peak = -Infinity
     let maxDD = 0
+    let maxDDDate = ''
     for (const br of blendedReturns) {
       if (br.value > peak) peak = br.value
       const dd = peak - br.value
-      if (dd > maxDD) maxDD = dd
+      if (dd > maxDD) {
+        maxDD = dd
+        maxDDDate = br.date
+      }
     }
+
+    // Sharpe ratio (annualized, risk-free rate ~4.5%)
+    const tradingDays = blendedReturns.length
+    const years = tradingDays / 252
+    const annualizedReturn = years > 0 ? ((1 + totalReturn / 100) ** (1 / years) - 1) * 100 : 0
+    const riskFreeRate = 4.5
+    const sharpeRatio = volatility > 0 ? (annualizedReturn - riskFreeRate) / volatility : 0
 
     result.value = {
       assetData: assetResults,
@@ -227,6 +240,8 @@ export const usePortfolioStore = defineStore('portfolio', () => {
       totalReturn,
       volatility,
       maxDrawdown: maxDD,
+      maxDrawdownDate: maxDDDate,
+      sharpeRatio,
     }
     hasRun.value = true
     loading.value = false

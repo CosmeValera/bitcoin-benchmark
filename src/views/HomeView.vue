@@ -27,39 +27,52 @@ onMounted(() => {
   <div class="home">
     <!-- Control Panel -->
     <section class="control-panel">
+      <div class="section-label">
+        <span class="section-dot"></span>
+        <span class="section-num">#1 · SELECT</span>
+      </div>
+
       <div class="panel-section">
-        <h2>Select Assets</h2>
+        <div class="panel-title-area">
+          <h2>Asset Selection</h2>
+          <p class="panel-subtitle">Pick assets to compare their historical performance side by side.</p>
+        </div>
         <AssetSelector />
       </div>
 
       <div class="panel-divider"></div>
 
       <div class="panel-section">
-        <h2>Time Range</h2>
-        <TimeRangeSelector />
+        <div class="time-range-row">
+          <h2>Time Range</h2>
+          <TimeRangeSelector />
+        </div>
       </div>
 
       <div class="panel-divider"></div>
 
       <div class="panel-section">
-        <h2>Display Currency</h2>
-        <div class="currency-buttons">
-          <button
-            v-for="c in (['USD', 'EUR', 'BTC', 'sats'] as const)"
-            :key="c"
-            class="currency-btn"
-            :class="{ active: store.displayCurrency === c }"
-            @click="store.displayCurrency = c"
-          >
-            {{ c }}
-          </button>
+        <div class="options-row">
+          <div class="option-group">
+            <span class="option-label">Currency</span>
+            <div class="currency-buttons">
+              <button
+                v-for="c in (['USD', 'EUR', 'BTC', 'sats'] as const)"
+                :key="c"
+                class="pill-btn"
+                :class="{ active: store.displayCurrency === c }"
+                @click="store.displayCurrency = c"
+              >
+                {{ c }}
+              </button>
+            </div>
+          </div>
+          <label class="toggle-label">
+            <input type="checkbox" v-model="store.showDividendAdjusted" />
+            Include dividend income
+          </label>
         </div>
       </div>
-
-      <label class="toggle-label">
-        <input type="checkbox" v-model="store.showDividendAdjusted" />
-        Include dividend income for preferred stocks
-      </label>
 
       <div class="action-row">
         <button
@@ -72,18 +85,34 @@ onMounted(() => {
             Loading...
           </template>
           <template v-else>
-            Compare {{ store.selectedIds.size }} asset{{ store.selectedIds.size !== 1 ? 's' : '' }}
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+              <path fill-rule="evenodd" d="M4.25 2A2.25 2.25 0 002 4.25v11.5A2.25 2.25 0 004.25 18h11.5A2.25 2.25 0 0018 15.75V4.25A2.25 2.25 0 0015.75 2H4.25zm4.03 6.28a.75.75 0 00-1.06-1.06L4.97 9.47a.75.75 0 000 1.06l2.25 2.25a.75.75 0 001.06-1.06L6.56 10l1.72-1.72zm3.44-1.06a.75.75 0 111.06 1.06L11.06 10l1.72 1.72a.75.75 0 11-1.06 1.06l-2.25-2.25a.75.75 0 010-1.06l2.25-2.25z" clip-rule="evenodd" />
+            </svg>
+            COMPARE {{ store.selectedIds.size }} ASSET{{ store.selectedIds.size !== 1 ? 'S' : '' }}
           </template>
-        </button>
-        <button class="btn-share" @click="share" :disabled="!store.hasRun">
-          {{ copied ? 'Copied!' : 'Share' }}
         </button>
       </div>
     </section>
 
     <!-- Results -->
-    <ComparisonChart />
-    <PerformanceTable />
+    <section v-if="store.hasRun && store.assetsData.length" class="results-panel">
+      <div class="section-label">
+        <span class="section-dot green"></span>
+        <span class="section-num">#2 · RESULTS</span>
+      </div>
+
+      <ComparisonChart />
+
+      <div class="panel-divider"></div>
+
+      <PerformanceTable />
+
+      <div class="perf-actions">
+        <button class="btn-share" @click="share" :disabled="!store.hasRun">
+          {{ copied ? 'Copied!' : 'Share' }}
+        </button>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -94,7 +123,8 @@ onMounted(() => {
   gap: 1.5rem;
 }
 
-.control-panel {
+.control-panel,
+.results-panel {
   background: var(--card-bg);
   border-radius: 12px;
   padding: 1.5rem;
@@ -104,10 +134,54 @@ onMounted(() => {
   gap: 1.25rem;
 }
 
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.section-dot.green {
+  background: var(--green);
+}
+
+.section-num {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.panel-title-area {
+  margin-bottom: 1rem;
+}
+
+.panel-title-area h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.2rem;
+  letter-spacing: -0.01em;
+}
+
+.panel-subtitle {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 .panel-section h2 {
   font-size: 0.9rem;
   font-weight: 600;
-  margin: 0 0 0.75rem;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .panel-divider {
@@ -115,30 +189,56 @@ onMounted(() => {
   background: var(--border);
 }
 
-.currency-buttons {
+.time-range-row {
   display: flex;
-  gap: 0.3rem;
+  align-items: center;
+  gap: 1rem;
 }
 
-.currency-btn {
-  padding: 0.35rem 0.7rem;
-  border-radius: 6px;
+.options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.option-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.option-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.currency-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.pill-btn {
+  padding: 0.3rem 0.6rem;
+  border-radius: 20px;
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-family: inherit;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
 }
 
-.currency-btn:hover {
+.pill-btn:hover {
   border-color: var(--text-muted);
   color: var(--text);
 }
 
-.currency-btn.active {
+.pill-btn.active {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
@@ -148,7 +248,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
   cursor: pointer;
 }
@@ -166,18 +266,20 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   flex: 1;
-  padding: 0.8rem;
+  padding: 0.85rem;
   border: none;
   border-radius: 8px;
   background: var(--accent);
   color: #fff;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 700;
   font-family: inherit;
   cursor: pointer;
   transition: background 0.2s;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .btn-compare:hover:not(:disabled) {
@@ -189,13 +291,18 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
+.perf-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .btn-share {
-  padding: 0.8rem 1.25rem;
+  padding: 0.5rem 1.2rem;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -225,6 +332,17 @@ onMounted(() => {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 600px) {
+  .time-range-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .options-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>

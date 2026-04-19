@@ -7,7 +7,7 @@ const store = usePortfolioStore()
 
 const presets: { label: string; weights: Record<string, number> }[] = [
   { label: '100% BTC', weights: { btc: 100 } },
-  { label: '60/40 BTC/SPY', weights: { btc: 60, spy: 40 } },
+  { label: '60/40 BTC SPY', weights: { btc: 60, spy: 40 } },
   { label: 'BTC + MSTR', weights: { btc: 50, mstr: 50 } },
   { label: 'Treasury Mix', weights: { btc: 40, mstr: 30, metaplanet: 15, xxi: 15 } },
 ]
@@ -42,11 +42,20 @@ function onTickerKeydown(e: KeyboardEvent) {
 
 // Short display names for compact grid
 function shortName(name: string): string {
-  // Extract ticker from parentheses, or use full name
   const match = name.match(/\(([^)]+)\)/)
-  if (match) return match[1]
+  if (match) return name.replace(/\s*\([^)]+\)/, '')
   return name
 }
+
+function tickerBadge(name: string): string {
+  const match = name.match(/\(([^)]+)\)/)
+  return match ? match[1] : ''
+}
+
+// Active asset count
+const activeCount = computed(() => {
+  return store.allAssets.filter((a) => (store.allocations[a.id] ?? 0) > 0).length
+})
 
 // Donut chart data
 const donutSlices = computed(() => {
@@ -79,34 +88,38 @@ const CIRC = 2 * Math.PI * R
 <template>
   <section class="weights-panel">
     <div class="weights-header">
-      <h2>Asset Allocation</h2>
+      <div class="weights-title-area">
+        <h2>Asset Allocation</h2>
+        <p class="weights-subtitle">Distribute weight across Bitcoin, treasuries, preferreds and indices.</p>
+      </div>
       <div class="donut-area">
-        <svg class="donut" viewBox="0 0 42 42" v-if="store.totalWeight > 0">
-          <circle class="donut-bg" cx="21" cy="21" :r="R" fill="none" stroke-width="4" />
-          <circle
-            v-for="slice in donutSlices"
-            :key="slice.id"
-            cx="21" cy="21" :r="R"
-            fill="none"
-            :stroke="slice.color"
-            stroke-width="4"
-            :stroke-dasharray="`${(slice.pct / 100) * CIRC} ${CIRC}`"
-            :stroke-dashoffset="`${-(slice.offset / 100) * CIRC}`"
-            stroke-linecap="butt"
-          />
-          <text x="21" y="21.5" text-anchor="middle" dominant-baseline="middle" class="donut-label">
-            {{ donutSlices.length }}
-          </text>
-        </svg>
-        <svg class="donut" viewBox="0 0 42 42" v-else>
-          <circle class="donut-bg" cx="21" cy="21" :r="R" fill="none" stroke-width="4" />
-          <text x="21" y="21.5" text-anchor="middle" dominant-baseline="middle" class="donut-label">0</text>
-        </svg>
-        <div class="donut-legend" v-if="donutSlices.length > 0">
-          <span v-for="slice in donutSlices" :key="slice.id" class="legend-item">
-            <span class="legend-dot" :style="{ background: slice.color }"></span>
-            <span class="legend-text">{{ slice.pct.toFixed(0) }}%</span>
-          </span>
+        <div class="donut-stats">
+          <span class="donut-stats-label">TOTAL</span>
+          <span class="donut-stats-value" :class="{ over: store.totalWeight > 100 }">{{ store.totalWeight }}%</span>
+        </div>
+        <div class="donut-wrap">
+          <svg class="donut" viewBox="0 0 42 42" v-if="store.totalWeight > 0">
+            <circle class="donut-track" cx="21" cy="21" :r="R" fill="none" stroke-width="3" />
+            <circle
+              v-for="slice in donutSlices"
+              :key="slice.id"
+              cx="21" cy="21" :r="R"
+              fill="none"
+              :stroke="slice.color"
+              stroke-width="4"
+              :stroke-dasharray="`${(slice.pct / 100) * CIRC} ${CIRC}`"
+              :stroke-dashoffset="`${-(slice.offset / 100) * CIRC}`"
+              stroke-linecap="butt"
+            />
+            <text x="21" y="21.5" text-anchor="middle" dominant-baseline="middle" class="donut-label">
+              {{ activeCount }}
+            </text>
+          </svg>
+          <svg class="donut" viewBox="0 0 42 42" v-else>
+            <circle class="donut-track" cx="21" cy="21" :r="R" fill="none" stroke-width="3" />
+            <text x="21" y="21.5" text-anchor="middle" dominant-baseline="middle" class="donut-label">0</text>
+          </svg>
+          <span class="donut-count">ASSETS</span>
         </div>
       </div>
     </div>
@@ -136,6 +149,7 @@ const CIRC = 2 * Math.PI * R
           <div class="cell-top">
             <span class="dot" :style="{ background: asset.color }"></span>
             <span class="cell-name">{{ shortName(asset.name) }}</span>
+            <span v-if="tickerBadge(asset.name) || asset.ticker !== asset.name" class="ticker-badge">{{ tickerBadge(asset.name) || asset.ticker }}</span>
             <span class="cell-value" :class="{ highlight: (store.allocations[asset.id] ?? 0) > 0 }">
               {{ store.allocations[asset.id] ?? 0 }}%
             </span>
@@ -146,6 +160,7 @@ const CIRC = 2 * Math.PI * R
             max="100"
             step="5"
             class="cell-slider"
+            :style="{ '--slider-color': asset.color } as any"
             :value="store.allocations[asset.id]"
             @input="onInput(asset.id, $event)"
           />
@@ -204,6 +219,7 @@ const CIRC = 2 * Math.PI * R
             max="100"
             step="5"
             class="cell-slider"
+            :style="{ '--slider-color': asset.color } as any"
             :value="store.allocations[asset.id] ?? 0"
             @input="onInput(asset.id, $event)"
           />
@@ -222,30 +238,79 @@ const CIRC = 2 * Math.PI * R
 
 .weights-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 1rem;
+}
+
+.weights-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 h2 {
   margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.weights-subtitle {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 /* Donut */
 .donut-area {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.donut-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+}
+
+.donut-stats-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.donut-stats-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.donut-stats-value.over {
+  color: var(--warning);
+}
+
+.donut-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
 }
 
 .donut {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   transform: rotate(-90deg);
 }
 
-.donut-bg {
+.donut-track {
   stroke: var(--border);
 }
 
@@ -257,31 +322,12 @@ h2 {
   transform-origin: 21px 21px;
 }
 
-.donut-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.2rem 0.45rem;
-  max-width: 140px;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-}
-
-.legend-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.legend-text {
-  font-size: 0.65rem;
-  font-weight: 500;
+.donut-count {
+  font-size: 0.55rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
 }
 
 /* Presets */
@@ -434,6 +480,20 @@ h3 {
   flex-shrink: 0;
 }
 
+/* Ticker badge */
+.ticker-badge {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--card-inner-bg, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
 /* 2-column compact grid */
 .asset-grid {
   display: grid;
@@ -445,8 +505,8 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  padding: 0.3rem 0.45rem;
-  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
   border: 1px solid transparent;
   transition: all 0.15s;
   cursor: default;
@@ -464,8 +524,8 @@ h3 {
 }
 
 .cell-name {
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 0.78rem;
+  font-weight: 600;
   flex: 1;
 }
 
@@ -479,13 +539,24 @@ h3 {
 
 .cell-value.highlight {
   color: var(--accent);
-  font-weight: 600;
+  font-weight: 700;
 }
 
+/* Colored range slider */
 .cell-slider {
   width: 100%;
-  accent-color: var(--accent);
   height: 14px;
+  accent-color: var(--slider-color, var(--accent));
+}
+
+@media (max-width: 500px) {
+  .weights-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .donut-area {
+    align-self: flex-end;
+  }
 }
 
 @media (max-width: 400px) {

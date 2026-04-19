@@ -11,6 +11,12 @@ function fmt(n: number, decimals = 1): string {
   })
 }
 
+function formatDrawdownDate(dateStr: string): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+}
+
 const cards = computed(() => {
   const r = store.result
   if (!r) return []
@@ -18,107 +24,102 @@ const cards = computed(() => {
     {
       label: 'Total Return',
       value: `${r.totalReturn >= 0 ? '+' : ''}${fmt(r.totalReturn)}%`,
+      sub: `vs benchmark`,
       positive: r.totalReturn >= 0,
       negative: r.totalReturn < 0,
     },
     {
       label: 'Volatility (Ann.)',
       value: `${fmt(r.volatility)}%`,
+      sub: '252d rolling',
       positive: false,
       negative: false,
     },
     {
       label: 'Max Drawdown',
-      value: `${fmt(r.maxDrawdown)}%`,
+      value: `${r.maxDrawdown > 0 ? '-' : ''}${fmt(r.maxDrawdown)}%`,
+      sub: formatDrawdownDate(r.maxDrawdownDate),
       positive: false,
       negative: r.maxDrawdown > 0,
     },
     {
-      label: 'Assets in Portfolio',
-      value: `${r.assetData.length}`,
-      positive: false,
-      negative: false,
+      label: 'Sharpe Ratio',
+      value: `${fmt(r.sharpeRatio, 2)}`,
+      sub: 'Risk-adjusted',
+      positive: r.sharpeRatio > 0,
+      negative: r.sharpeRatio < 0,
     },
   ]
 })
 </script>
 
 <template>
-  <section v-if="store.hasRun && store.result" class="portfolio-summary">
-    <h2>Portfolio Summary</h2>
-    <div class="cards-grid">
-      <div
-        v-for="card in cards"
-        :key="card.label"
-        class="card"
-        :class="{ positive: card.positive, negative: card.negative }"
-      >
-        <span class="card-label">{{ card.label }}</span>
-        <span class="card-value">{{ card.value }}</span>
-      </div>
+  <div v-if="store.hasRun && store.result" class="summary-cards">
+    <div
+      v-for="card in cards"
+      :key="card.label"
+      class="card"
+    >
+      <span class="card-label">{{ card.label }}</span>
+      <span class="card-value" :class="{ positive: card.positive, negative: card.negative }">{{ card.value }}</span>
+      <span v-if="card.sub" class="card-sub">{{ card.sub }}</span>
     </div>
-  </section>
+  </div>
 </template>
 
 <style scoped>
-.portfolio-summary {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 1.5rem;
-  border: 1px solid var(--border);
-}
-
-h2 {
-  margin: 0 0 1.25rem;
-  font-size: 1.125rem;
-  font-weight: 600;
-}
-
-.cards-grid {
+.summary-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .card {
-  background: var(--card-inner-bg);
+  background: var(--card-inner-bg, var(--bg));
   border-radius: 8px;
-  padding: 1rem;
+  padding: 0.85rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.2rem;
 }
 
 .card-label {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  font-weight: 500;
+  letter-spacing: 0.06em;
+  font-weight: 600;
 }
 
 .card-value {
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: 1.2rem;
+  font-weight: 800;
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
-.card.positive .card-value {
+.card-value.positive {
   color: var(--green);
 }
 
-.card.negative .card-value {
+.card-value.negative {
   color: var(--red);
 }
 
+.card-sub {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
 @media (max-width: 768px) {
-  .cards-grid {
+  .summary-cards {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 400px) {
-  .cards-grid {
+  .summary-cards {
     grid-template-columns: 1fr;
   }
 }

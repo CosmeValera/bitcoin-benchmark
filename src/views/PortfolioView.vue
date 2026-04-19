@@ -29,22 +29,29 @@ onMounted(() => {
 <template>
   <div class="portfolio">
     <section class="control-panel">
+      <div class="section-label">
+        <span class="section-dot"></span>
+        <span class="section-num">#1 · ALLOCATE</span>
+      </div>
+
       <PortfolioWeights />
 
       <div class="panel-divider"></div>
 
       <div class="panel-section">
-        <h2>Time Range</h2>
-        <div class="range-buttons">
-          <button
-            v-for="r in ranges"
-            :key="r"
-            class="range-btn"
-            :class="{ active: store.timeRange === r }"
-            @click="store.setTimeRange(r)"
-          >
-            {{ r }}
-          </button>
+        <div class="time-range-row">
+          <h2>Time Range</h2>
+          <div class="range-buttons">
+            <button
+              v-for="r in ranges"
+              :key="r"
+              class="range-btn"
+              :class="{ active: store.timeRange === r }"
+              @click="store.setTimeRange(r)"
+            >
+              {{ r }}
+            </button>
+          </div>
         </div>
         <div v-if="store.timeRange === 'CUSTOM'" class="custom-dates">
           <div class="field">
@@ -68,10 +75,27 @@ onMounted(() => {
           <template v-else-if="!store.isValid">
             Set at least one asset weight
           </template>
-          <template v-else>Build Portfolio</template>
+          <template v-else>
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+              <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+            </svg>
+            BUILD PORTFOLIO
+          </template>
         </button>
+      </div>
+    </section>
+
+    <section v-if="store.hasRun && store.result" class="performance-panel">
+      <div class="section-label">
+        <span class="section-dot green"></span>
+        <span class="section-num">#2 · PERFORMANCE</span>
+      </div>
+
+      <PortfolioChart />
+      <PortfolioSummary />
+
+      <div class="perf-actions" v-if="store.hasRun">
         <button
-          v-if="store.hasRun"
           class="btn-share"
           @click="share"
           :title="copied ? 'Copied!' : 'Copy shareable URL'"
@@ -80,9 +104,6 @@ onMounted(() => {
         </button>
       </div>
     </section>
-
-    <PortfolioChart />
-    <PortfolioSummary />
 
     <div v-if="store.errors.size > 0" class="errors-panel">
       <p v-for="[id, msg] in store.errors" :key="id" class="error-line">{{ msg }}</p>
@@ -107,15 +128,49 @@ onMounted(() => {
   gap: 1.25rem;
 }
 
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.section-dot.green {
+  background: var(--green);
+}
+
+.section-num {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
 .panel-section h2 {
   font-size: 0.9rem;
   font-weight: 600;
-  margin: 0 0 0.75rem;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .panel-divider {
   height: 1px;
   background: var(--border);
+}
+
+.time-range-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .range-buttons {
@@ -125,12 +180,12 @@ onMounted(() => {
 }
 
 .range-btn {
-  padding: 0.35rem 0.7rem;
-  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  border-radius: 20px;
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-family: inherit;
   font-weight: 500;
   cursor: pointer;
@@ -190,16 +245,22 @@ onMounted(() => {
 
 .btn-run {
   flex: 1;
-  padding: 0.8rem;
+  padding: 0.85rem;
   border: none;
   border-radius: 8px;
   background: var(--accent);
   color: #fff;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 700;
   font-family: inherit;
   cursor: pointer;
   transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .btn-run:hover:not(:disabled) {
@@ -209,15 +270,34 @@ onMounted(() => {
 .btn-run:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.performance-panel {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.perf-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .btn-share {
-  padding: 0.8rem 1.2rem;
+  padding: 0.5rem 1.2rem;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -241,5 +321,12 @@ onMounted(() => {
   font-size: 0.8rem;
   color: var(--warning);
   margin: 0.25rem 0;
+}
+
+@media (max-width: 600px) {
+  .time-range-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>

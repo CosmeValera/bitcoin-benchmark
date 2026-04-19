@@ -48,12 +48,12 @@ const ranges: TimeRange[] = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '5Y', 'A
 }
 
 .range-btn {
-  padding: 0.35rem 0.7rem;
-  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  border-radius: 20px;
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-family: inherit;
   font-weight: 500;
   cursor: pointer;

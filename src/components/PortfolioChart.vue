@@ -42,10 +42,8 @@ const chartData = computed(() => {
   const labels = blendedReturns
     .filter((_, i) => i % step === 0 || i === blendedReturns.length - 1)
     .map((br) => br.date)
-  const labelSet = new Set(labels)
 
   // Individual asset lines (thin, semi-transparent)
-  // Carry forward last known value so weekends/holidays don't create gaps
   const assetDatasets = assetData.map(({ asset, prices, normalizedReturns }) => {
     const dateToReturn = new Map<string, number>()
     for (let i = 0; i < prices.length; i++) {
@@ -58,7 +56,6 @@ const chartData = computed(() => {
         lastVal = val
         return val
       }
-      // Only carry forward if the asset has started trading
       return lastVal
     })
     return {
@@ -83,7 +80,7 @@ const chartData = computed(() => {
   const blendedData = labels.map((d) => dateToBlend.get(d) ?? null)
 
   const portfolioDataset = {
-    label: 'Portfolio (blended)',
+    label: 'Portfolio',
     data: blendedData,
     borderColor: cssVar('--accent'),
     backgroundColor: 'transparent',
@@ -108,14 +105,7 @@ const chartOptions = computed(() => {
     },
     plugins: {
       legend: {
-        position: 'top' as const,
-        labels: {
-          color: cssVar('--chart-legend'),
-          usePointStyle: true,
-          pointStyle: 'circle',
-          padding: 16,
-          font: { size: 12 },
-        },
+        display: false,
       },
       tooltip: {
         backgroundColor: cssVar('--chart-tooltip-bg'),
@@ -151,75 +141,99 @@ const chartOptions = computed(() => {
 </script>
 
 <template>
-  <section v-if="store.hasRun && store.result" class="chart-panel">
+  <div v-if="store.hasRun && store.result" class="chart-wrap">
     <div class="chart-header">
-      <h2>Portfolio Performance</h2>
-      <div class="chart-header-right">
-        <span class="chart-hint">Weighted blended returns</span>
-        <button class="export-btn" @click="downloadPng" title="Download PNG">PNG</button>
+      <div class="chart-title-area">
+        <h2>Portfolio Performance</h2>
+        <p class="chart-subtitle">Weighted blended returns over the selected window.</p>
+      </div>
+      <div class="chart-legend">
+        <span class="legend-item">
+          <span class="legend-dot accent"></span>
+          Portfolio
+        </span>
+        <span class="legend-item">
+          <span class="legend-dot muted"></span>
+          Benchmark
+        </span>
       </div>
     </div>
     <div class="chart-container">
       <Line ref="lineChart" :data="chartData" :options="chartOptions" />
     </div>
-  </section>
+  </div>
 </template>
 
 <style scoped>
-.chart-panel {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 1.5rem;
-  border: 1px solid var(--border);
+.chart-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .chart-header {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.chart-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 h2 {
   margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
-.chart-header-right {
+.chart-subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.chart-legend {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
-.chart-hint {
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 0.75rem;
   color: var(--text-muted);
+  font-weight: 500;
 }
 
-.export-btn {
-  padding: 0.3rem 0.65rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 0.7rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  transition: all 0.15s;
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
 }
 
-.export-btn:hover {
-  border-color: var(--text-muted);
-  color: var(--text);
+.legend-dot.accent {
+  background: var(--accent);
+}
+
+.legend-dot.muted {
+  background: var(--text-muted);
+  opacity: 0.5;
 }
 
 .chart-container {
-  height: 420px;
+  height: 380px;
   position: relative;
+  background: var(--card-inner-bg, var(--bg));
+  border-radius: 8px;
+  padding: 0.75rem 0.5rem;
 }
 
 @media (max-width: 600px) {
@@ -228,7 +242,7 @@ h2 {
     gap: 0.25rem;
   }
   .chart-container {
-    height: 300px;
+    height: 280px;
   }
 }
 </style>
