@@ -10,11 +10,18 @@ import {
 } from '@/types'
 import { useMarketData } from '@/composables/useMarketData'
 
+// Rotating palette for custom assets
+const CUSTOM_COLORS = [
+  '#ef4444', '#06b6d4', '#84cc16', '#f97316', '#ec4899',
+  '#14b8a6', '#eab308', '#6366f1', '#d946ef', '#0ea5e9',
+]
+
 export const useComparisonStore = defineStore('comparison', () => {
   const { fetchAssetPrices, normalizeReturns, calcVolatility } = useMarketData()
 
   // State
   const selectedIds = ref<Set<string>>(new Set(['btc', 'mstr', 'spy']))
+  const customAssets = ref<Asset[]>([])
   const timeRange = ref<TimeRange>('1Y')
   const customStartDate = ref('2020-01-01')
   const customEndDate = ref(new Date().toISOString().slice(0, 10))
@@ -28,8 +35,10 @@ export const useComparisonStore = defineStore('comparison', () => {
   const eurRate = ref<Map<string, number>>(new Map()) // date → EUR per USD
 
   // Computed
+  const allAssets = computed(() => [...ASSETS, ...customAssets.value])
+
   const selectedAssets = computed(() =>
-    ASSETS.filter((a) => selectedIds.value.has(a.id)),
+    allAssets.value.filter((a) => selectedIds.value.has(a.id)),
   )
 
   const startDate = computed(() => {
@@ -71,6 +80,37 @@ export const useComparisonStore = defineStore('comparison', () => {
   })
 
   // Actions
+  function addCustomAsset(ticker: string) {
+    const normalized = ticker.trim().toUpperCase()
+    if (!normalized) return false
+    const id = `custom_${normalized.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+    if (ASSETS.some((a) => a.ticker.toUpperCase() === normalized)) return false
+    if (customAssets.value.some((a) => a.ticker.toUpperCase() === normalized)) return false
+
+    const colorIdx = customAssets.value.length % CUSTOM_COLORS.length
+    const asset: Asset = {
+      id,
+      ticker: normalized,
+      name: normalized,
+      category: 'index',
+      color: CUSTOM_COLORS[colorIdx],
+      description: `Custom asset: ${normalized}`,
+    }
+    customAssets.value = [...customAssets.value, asset]
+    // Auto-select the new custom asset
+    const next = new Set(selectedIds.value)
+    next.add(id)
+    selectedIds.value = next
+    return true
+  }
+
+  function removeCustomAsset(id: string) {
+    customAssets.value = customAssets.value.filter((a) => a.id !== id)
+    const next = new Set(selectedIds.value)
+    next.delete(id)
+    selectedIds.value = next
+  }
+
   function toggleAsset(id: string) {
     const next = new Set(selectedIds.value)
     if (next.has(id)) {
@@ -90,7 +130,7 @@ export const useComparisonStore = defineStore('comparison', () => {
     const assetsParam = params.get('assets')
     const rangeParam = params.get('range') as TimeRange | null
     if (assetsParam) {
-      const ids = assetsParam.split(',').filter((id) => ASSETS.some((a) => a.id === id))
+      const ids = assetsParam.split(',').filter((id) => allAssets.value.some((a) => a.id === id))
       if (ids.length > 0) selectedIds.value = new Set(ids)
     }
     if (rangeParam) {
@@ -217,6 +257,8 @@ export const useComparisonStore = defineStore('comparison', () => {
 
   return {
     selectedIds,
+    customAssets,
+    allAssets,
     timeRange,
     customStartDate,
     customEndDate,
@@ -230,6 +272,8 @@ export const useComparisonStore = defineStore('comparison', () => {
     eurRate,
     selectedAssets,
     metrics,
+    addCustomAsset,
+    removeCustomAsset,
     toggleAsset,
     setTimeRange,
     convertPrice,

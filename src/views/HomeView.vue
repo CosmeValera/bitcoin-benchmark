@@ -45,7 +45,7 @@ onMounted(() => {
         <h2>Display Currency</h2>
         <div class="currency-buttons">
           <button
-            v-for="c in (['USD', 'BTC', 'sats', 'EUR'] as const)"
+            v-for="c in (['USD', 'EUR', 'BTC', 'sats'] as const)"
             :key="c"
             class="currency-btn"
             :class="{ active: store.displayCurrency === c }"
