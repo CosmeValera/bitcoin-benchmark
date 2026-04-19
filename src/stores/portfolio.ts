@@ -232,6 +232,63 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     loading.value = false
   }
 
+  function toShareUrl(): string {
+    const url = new URL(window.location.href.split('?')[0])
+    // Encode active weights
+    const active = Object.entries(allocations.value).filter(([, w]) => w > 0)
+    if (active.length > 0) {
+      url.searchParams.set('w', active.map(([id, w]) => `${id}:${w}`).join(','))
+    }
+    // Encode custom asset tickers so receiver can recreate them
+    if (customAssets.value.length > 0) {
+      url.searchParams.set('custom', customAssets.value.map((a) => a.ticker).join(','))
+    }
+    url.searchParams.set('range', timeRange.value)
+    if (timeRange.value === 'CUSTOM') {
+      url.searchParams.set('from', customStartDate.value)
+      url.searchParams.set('to', customEndDate.value)
+    }
+    return url.toString()
+  }
+
+  function initFromUrl() {
+    const params = new URLSearchParams(window.location.search)
+
+    // Restore custom assets first so their IDs exist for weight assignment
+    const customParam = params.get('custom')
+    if (customParam) {
+      for (const ticker of customParam.split(',')) {
+        addCustomAsset(ticker)
+      }
+    }
+
+    const weightsParam = params.get('w')
+    if (weightsParam) {
+      // Zero out all weights, then apply from URL
+      const next: Record<string, number> = {}
+      for (const a of ASSETS) next[a.id] = 0
+      for (const a of customAssets.value) next[a.id] = 0
+      for (const entry of weightsParam.split(',')) {
+        const [id, wStr] = entry.split(':')
+        const w = parseFloat(wStr)
+        if (id && !isNaN(w)) next[id] = w
+      }
+      allocations.value = next
+    }
+
+    const rangeParam = params.get('range') as TimeRange | null
+    if (rangeParam) {
+      const validRanges: TimeRange[] = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '5Y', 'ALL', 'CUSTOM']
+      if (validRanges.includes(rangeParam)) timeRange.value = rangeParam
+    }
+    if (rangeParam === 'CUSTOM') {
+      const from = params.get('from')
+      const to = params.get('to')
+      if (from) customStartDate.value = from
+      if (to) customEndDate.value = to
+    }
+  }
+
   return {
     allocations,
     customAssets,
@@ -250,6 +307,8 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     addCustomAsset,
     removeCustomAsset,
     setTimeRange,
+    toShareUrl,
+    initFromUrl,
     runPortfolio,
   }
 })

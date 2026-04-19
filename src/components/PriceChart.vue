@@ -62,6 +62,16 @@ const chartData = computed(() => {
       yAxisID: 'yPortfolio',
     })
     datasets.push({
+      label: 'Lump Sum Portfolio Value',
+      data: indices.map((i) => r.lumpSumPortfolioValues[i] ?? null),
+      borderColor: '#a855f7',
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: 0,
+      borderWidth: 2,
+      yAxisID: 'yPortfolio',
+    })
+    datasets.push({
       label: 'Total Invested',
       data: indices.map((i) => r.dcaTotalInvested[i] ?? null),
       borderColor: cssVar('--text-muted'),

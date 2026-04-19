@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { RouterView, RouterLink } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
+import { useBtcTicker } from '@/composables/useBtcTicker'
 
 const { theme, toggle } = useTheme()
+const { price, change24h } = useBtcTicker()
+
+function formatPrice(p: number): string {
+  return p.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+}
 </script>
 
 <template>
@@ -14,10 +20,23 @@ const { theme, toggle } = useTheme()
             <span class="logo-icon">₿</span>
             <h1>Bitcoin Finance Lab</h1>
           </div>
-          <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
-            <span v-if="theme === 'dark'">&#9788;</span>
-            <span v-else>&#9790;</span>
-          </button>
+          <div class="header-right">
+            <div v-if="price != null" class="btc-ticker">
+              <span class="ticker-label">BTC</span>
+              <span class="ticker-price">{{ formatPrice(price) }}</span>
+              <span
+                v-if="change24h != null"
+                class="ticker-change"
+                :class="change24h >= 0 ? 'up' : 'down'"
+              >
+                {{ change24h >= 0 ? '+' : '' }}{{ change24h.toFixed(1) }}%
+              </span>
+            </div>
+            <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
+              <span v-if="theme === 'dark'">&#9788;</span>
+              <span v-else>&#9790;</span>
+            </button>
+          </div>
         </div>
         <p class="subtitle">
           Build portfolios, benchmark assets, and simulate DCA strategies with real market data
@@ -73,6 +92,47 @@ header {
   display: flex;
   align-items: center;
   gap: 0.65rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btc-ticker {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticker-label {
+  color: #f7931a;
+  font-weight: 700;
+  font-size: 0.7rem;
+}
+
+.ticker-price {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.ticker-change {
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.ticker-change.up {
+  color: #22c55e;
+}
+
+.ticker-change.down {
+  color: #ef4444;
 }
 
 .theme-toggle {

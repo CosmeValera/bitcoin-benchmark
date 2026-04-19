@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio'
 import type { TimeRange } from '@/types'
 import PortfolioWeights from '@/components/PortfolioWeights.vue'
@@ -8,8 +8,18 @@ import PortfolioSummary from '@/components/PortfolioSummary.vue'
 
 const store = usePortfolioStore()
 const ranges: TimeRange[] = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '5Y', 'ALL', 'CUSTOM']
+const copied = ref(false)
+
+function share() {
+  const url = store.toShareUrl()
+  navigator.clipboard.writeText(url).then(() => {
+    copied.value = true
+    setTimeout(() => (copied.value = false), 2000)
+  })
+}
 
 onMounted(() => {
+  store.initFromUrl()
   if (!store.hasRun && store.isValid) {
     store.runPortfolio()
   }
@@ -48,17 +58,27 @@ onMounted(() => {
         </div>
       </div>
 
-      <button
-        class="btn-run"
-        :disabled="store.loading || !store.isValid"
-        @click="store.runPortfolio()"
-      >
-        <template v-if="store.loading">Loading...</template>
-        <template v-else-if="!store.isValid">
-          Set at least one asset weight
-        </template>
-        <template v-else>Build Portfolio</template>
-      </button>
+      <div class="action-row">
+        <button
+          class="btn-run"
+          :disabled="store.loading || !store.isValid"
+          @click="store.runPortfolio()"
+        >
+          <template v-if="store.loading">Loading...</template>
+          <template v-else-if="!store.isValid">
+            Set at least one asset weight
+          </template>
+          <template v-else>Build Portfolio</template>
+        </button>
+        <button
+          v-if="store.hasRun"
+          class="btn-share"
+          @click="share"
+          :title="copied ? 'Copied!' : 'Copy shareable URL'"
+        >
+          {{ copied ? 'Copied!' : 'Share' }}
+        </button>
+      </div>
     </section>
 
     <PortfolioChart />
@@ -163,8 +183,13 @@ onMounted(() => {
   border-color: var(--accent);
 }
 
+.action-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .btn-run {
-  width: 100%;
+  flex: 1;
   padding: 0.8rem;
   border: none;
   border-radius: 8px;
@@ -184,6 +209,25 @@ onMounted(() => {
 .btn-run:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn-share {
+  padding: 0.8rem 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-share:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
 }
 
 .errors-panel {

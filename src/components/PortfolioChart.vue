@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -14,11 +14,20 @@ import {
 } from 'chart.js'
 import { usePortfolioStore } from '@/stores/portfolio'
 import { useTheme } from '@/composables/useTheme'
+import { useExport } from '@/composables/useExport'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
 const store = usePortfolioStore()
 const { theme } = useTheme()
+const { exportPng } = useExport()
+const lineChart = ref<any>(null)
+
+function downloadPng() {
+  if (lineChart.value?.chart?.canvas) {
+    exportPng(lineChart.value.chart.canvas, 'portfolio.png')
+  }
+}
 
 function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
@@ -145,10 +154,13 @@ const chartOptions = computed(() => {
   <section v-if="store.hasRun && store.result" class="chart-panel">
     <div class="chart-header">
       <h2>Portfolio Performance</h2>
-      <span class="chart-hint">Weighted blended returns</span>
+      <div class="chart-header-right">
+        <span class="chart-hint">Weighted blended returns</span>
+        <button class="export-btn" @click="downloadPng" title="Download PNG">PNG</button>
+      </div>
     </div>
     <div class="chart-container">
-      <Line :data="chartData" :options="chartOptions" />
+      <Line ref="lineChart" :data="chartData" :options="chartOptions" />
     </div>
   </section>
 </template>
@@ -174,9 +186,35 @@ h2 {
   font-weight: 600;
 }
 
+.chart-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .chart-hint {
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+.export-btn {
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  transition: all 0.15s;
+}
+
+.export-btn:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
 }
 
 .chart-container {
