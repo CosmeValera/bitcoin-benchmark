@@ -100,13 +100,6 @@ function onTickerBlur() {
   }, 200)
 }
 
-function sliderStyle(color: string, value: number) {
-  return {
-    '--slider-color': color,
-    background: `linear-gradient(to right, ${color} ${value}%, var(--slider-track) ${value}%)`,
-  }
-}
-
 // Short display names for compact grid
 function shortName(name: string): string {
   const match = name.match(/\(([^)]+)\)/)
@@ -227,7 +220,7 @@ const CIRC = 2 * Math.PI * R
             max="100"
             step="5"
             class="cell-slider"
-            :style="sliderStyle(asset.color, store.allocations[asset.id] ?? 0)"
+            :style="{ background: `linear-gradient(to right, ${asset.color} ${store.allocations[asset.id] ?? 0}%, #94a3b8 ${store.allocations[asset.id] ?? 0}%)`, '--thumb-color': asset.color } as any"
             :value="store.allocations[asset.id]"
             @input="onInput(asset.id, $event)"
           />
@@ -314,7 +307,7 @@ const CIRC = 2 * Math.PI * R
             max="100"
             step="5"
             class="cell-slider"
-            :style="sliderStyle(asset.color, store.allocations[asset.id] ?? 0)"
+            :style="{ background: `linear-gradient(to right, ${asset.color} ${store.allocations[asset.id] ?? 0}%, #94a3b8 ${store.allocations[asset.id] ?? 0}%)`, '--thumb-color': asset.color } as any"
             :value="store.allocations[asset.id] ?? 0"
             @input="onInput(asset.id, $event)"
           />
@@ -737,38 +730,26 @@ h3 {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 12px;
-  border-radius: 2px;
-  outline: none;
+  height: 5px;
+  border-radius: 3px;
   cursor: pointer;
+  outline: none;
 }
-
 .cell-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  background: var(--slider-thumb);
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  background: var(--thumb-color, var(--accent));
+  box-shadow: 0 0 2px rgba(0,0,0,.4);
 }
-
 .cell-slider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  background: var(--slider-thumb);
+  background: var(--thumb-color, var(--accent));
   border: none;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.cell-slider::-moz-range-track {
-  height: 3px;
-  border-radius: 2px;
-  background: transparent;
+  box-shadow: 0 0 2px rgba(0,0,0,.4);
 }
 
 @media (max-width: 500px) {
