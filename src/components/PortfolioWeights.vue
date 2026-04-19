@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio'
 import { ASSETS, ASSET_CATEGORIES } from '@/types'
 
@@ -19,15 +20,71 @@ function onInput(id: string, event: Event) {
 function assetsForCategory(key: string) {
   return ASSETS.filter((a) => a.category === key)
 }
+
+// Donut chart data: active assets normalized to 100%
+const donutSlices = computed(() => {
+  const total = store.totalWeight
+  if (total <= 0) return []
+
+  const active = ASSETS
+    .filter((a) => (store.allocations[a.id] ?? 0) > 0)
+    .map((a) => ({
+      id: a.id,
+      name: a.name,
+      color: a.color,
+      raw: store.allocations[a.id],
+      pct: (store.allocations[a.id] / total) * 100,
+    }))
+
+  // Build SVG arc offsets
+  let offset = 0
+  return active.map((s) => {
+    const slice = { ...s, offset }
+    offset += s.pct
+    return slice
+  })
+})
+
+// SVG donut helpers (radius 15.9155 gives circumference ≈ 100)
+const R = 15.9155
+const CIRC = 2 * Math.PI * R // ≈ 100
 </script>
 
 <template>
   <section class="weights-panel">
     <div class="weights-header">
       <h2>Asset Allocation</h2>
-      <span class="weight-total" :class="{ active: store.totalWeight > 0 }">
-        Total: {{ store.totalWeight.toFixed(0) }}%
-      </span>
+      <div class="donut-area">
+        <!-- Donut chart -->
+        <svg class="donut" viewBox="0 0 42 42" v-if="store.totalWeight > 0">
+          <circle class="donut-bg" cx="21" cy="21" :r="R" fill="none" stroke-width="4" />
+          <circle
+            v-for="slice in donutSlices"
+            :key="slice.id"
+            cx="21" cy="21" :r="R"
+            fill="none"
+            :stroke="slice.color"
+            stroke-width="4"
+            :stroke-dasharray="`${(slice.pct / 100) * CIRC} ${CIRC}`"
+            :stroke-dashoffset="`${-(slice.offset / 100) * CIRC}`"
+            stroke-linecap="butt"
+          />
+          <text x="21" y="21.5" text-anchor="middle" dominant-baseline="middle" class="donut-label">
+            {{ donutSlices.length }}
+          </text>
+        </svg>
+        <svg class="donut" viewBox="0 0 42 42" v-else>
+          <circle class="donut-bg" cx="21" cy="21" :r="R" fill="none" stroke-width="4" />
+          <text x="21" y="21.5" text-anchor="middle" dominant-baseline="middle" class="donut-label">0</text>
+        </svg>
+        <!-- Legend below donut -->
+        <div class="donut-legend" v-if="donutSlices.length > 0">
+          <span v-for="slice in donutSlices" :key="slice.id" class="legend-item">
+            <span class="legend-dot" :style="{ background: slice.color }"></span>
+            <span class="legend-text">{{ slice.pct.toFixed(0) }}%</span>
+          </span>
+        </div>
+      </div>
     </div>
 
     <div class="presets">
@@ -85,18 +142,55 @@ h2 {
   font-weight: 600;
 }
 
-.weight-total {
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0.25rem 0.6rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
+.donut-area {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.weight-total.active {
-  color: var(--text);
-  border-color: var(--accent);
+.donut {
+  width: 48px;
+  height: 48px;
+  transform: rotate(-90deg);
+}
+
+.donut-bg {
+  stroke: var(--border);
+}
+
+.donut-label {
+  fill: var(--text);
+  font-size: 10px;
+  font-weight: 700;
+  transform: rotate(90deg);
+  transform-origin: 21px 21px;
+}
+
+.donut-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.45rem;
+  max-width: 140px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-text {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .presets {
