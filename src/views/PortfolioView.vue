@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import PortfolioWeights from '@/components/PortfolioWeights.vue'
@@ -34,6 +34,11 @@ useKeyboardShortcuts([
   },
 ])
 
+const hasDividendAssets = computed(() => {
+  const activeIds = Object.entries(store.allocations).filter(([, w]) => w > 0).map(([id]) => id)
+  return store.allAssets.some((a) => activeIds.includes(a.id) && a.dividendRate)
+})
+
 onMounted(() => {
   store.initFromUrl()
   if (!store.hasRun && store.isValid) {
@@ -66,9 +71,10 @@ onMounted(() => {
             @update:custom-end="store.customEndDate = $event"
           />
         </div>
-        <label class="toggle-label">
-          <input type="checkbox" v-model="store.showDividendAdjusted" />
+        <label class="toggle-label" :class="{ disabled: !hasDividendAssets }">
+          <input type="checkbox" v-model="store.showDividendAdjusted" :disabled="!hasDividendAssets" />
           Include dividend income
+          <span v-if="!hasDividendAssets" class="toggle-hint">(add STRK, STRD, STRF, or STRC with weight > 0)</span>
         </label>
       </div>
 
@@ -199,8 +205,19 @@ onMounted(() => {
   margin-top: 0.5rem;
 }
 
+.toggle-label.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .toggle-label input[type="checkbox"] {
   accent-color: var(--accent);
+}
+
+.toggle-hint {
+  font-size: 0.68rem;
+  font-style: italic;
+  opacity: 0.7;
 }
 
 .action-row {

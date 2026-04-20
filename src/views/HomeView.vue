@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useComparisonStore } from '@/stores/comparison'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import AssetSelector from '@/components/AssetSelector.vue'
@@ -38,6 +38,10 @@ useKeyboardShortcuts([
     description: 'Toggle drawdowns',
   },
 ])
+
+const hasDividendAssets = computed(() =>
+  store.selectedAssets.some((a) => a.dividendRate),
+)
 
 onMounted(() => {
   store.initFromUrl()
@@ -98,9 +102,10 @@ onMounted(() => {
               </button>
             </div>
           </div>
-          <label class="toggle-label">
-            <input type="checkbox" v-model="store.showDividendAdjusted" />
+          <label class="toggle-label" :class="{ disabled: !hasDividendAssets }">
+            <input type="checkbox" v-model="store.showDividendAdjusted" :disabled="!hasDividendAssets" />
             Include dividend income
+            <span v-if="!hasDividendAssets" class="toggle-hint">(select STRK, STRD, STRF, or STRC)</span>
           </label>
         </div>
       </div>
@@ -293,8 +298,19 @@ onMounted(() => {
   cursor: pointer;
 }
 
+.toggle-label.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .toggle-label input[type="checkbox"] {
   accent-color: var(--accent);
+}
+
+.toggle-hint {
+  font-size: 0.68rem;
+  font-style: italic;
+  opacity: 0.7;
 }
 
 .action-row {
