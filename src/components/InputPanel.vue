@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useSimulationStore } from '@/stores/simulation'
+import TimeRangeSelector from '@/components/TimeRangeSelector.vue'
 
 const store = useSimulationStore()
 
@@ -15,17 +16,19 @@ function handleSubmit() {
       <p class="panel-subtitle">Configure your DCA strategy and compare against lump sum investing.</p>
     </div>
     <form @submit.prevent="handleSubmit">
+      <div class="time-range-row">
+        <h2>Time Range</h2>
+        <TimeRangeSelector
+          :model-value="store.timeRange"
+          @update:model-value="store.setTimeRange($event)"
+          :custom-start="store.customStartDate"
+          @update:custom-start="store.customStartDate = $event"
+          :custom-end="store.customEndDate"
+          @update:custom-end="store.customEndDate = $event"
+        />
+      </div>
+
       <div class="form-grid">
-        <div class="field">
-          <label for="start-date">Start Date</label>
-          <input id="start-date" type="date" v-model="store.startDate" />
-        </div>
-
-        <div class="field">
-          <label for="end-date">End Date</label>
-          <input id="end-date" type="date" v-model="store.endDate" />
-        </div>
-
         <div class="field">
           <label for="monthly">Investment Amount (USD)</label>
           <input
@@ -84,6 +87,21 @@ function handleSubmit() {
   margin: 0;
   font-size: 0.8rem;
   color: var(--text-muted);
+}
+
+.time-range-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.time-range-row h2 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .form-grid {
@@ -175,6 +193,13 @@ select:focus {
   color: var(--red);
   margin: 0;
   font-size: 0.85rem;
+}
+
+@media (max-width: 600px) {
+  .time-range-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 500px) {

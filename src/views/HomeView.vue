@@ -69,7 +69,14 @@ onMounted(() => {
       <div class="panel-section">
         <div class="time-range-row">
           <h2>Time Range</h2>
-          <TimeRangeSelector />
+          <TimeRangeSelector
+            :model-value="store.timeRange"
+            @update:model-value="store.setTimeRange($event)"
+            :custom-start="store.customStartDate"
+            @update:custom-start="store.customStartDate = $event"
+            :custom-end="store.customEndDate"
+            @update:custom-end="store.customEndDate = $event"
+          />
         </div>
       </div>
 

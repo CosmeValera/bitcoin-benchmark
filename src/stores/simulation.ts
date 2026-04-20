@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useBitcoinPrice } from '@/composables/useBitcoinPrice'
 import { useCalculator, type SimulationResult } from '@/composables/useCalculator'
+import { getDateForRange, type TimeRange } from '@/types'
 
 export const useSimulationStore = defineStore('simulation', () => {
   const { prices, loading, error, fetchPrices } = useBitcoinPrice()
@@ -9,10 +10,25 @@ export const useSimulationStore = defineStore('simulation', () => {
 
   const monthlyInvestment = ref(100)
   const frequencyDays = ref(30)
-  const startDate = ref('2020-01-01')
-  const endDate = ref(new Date().toISOString().slice(0, 10))
+  const timeRange = ref<TimeRange>('3Y')
+  const customStartDate = ref('2020-01-01')
+  const customEndDate = ref(new Date().toISOString().slice(0, 10))
   const result = ref<SimulationResult | null>(null)
   const hasRun = ref(false)
+
+  const startDate = computed(() => {
+    if (timeRange.value === 'CUSTOM') return customStartDate.value
+    return getDateForRange(timeRange.value).toISOString().slice(0, 10)
+  })
+
+  const endDate = computed(() => {
+    if (timeRange.value === 'CUSTOM') return customEndDate.value
+    return new Date().toISOString().slice(0, 10)
+  })
+
+  function setTimeRange(range: TimeRange) {
+    timeRange.value = range
+  }
 
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
@@ -33,6 +49,9 @@ export const useSimulationStore = defineStore('simulation', () => {
   return {
     monthlyInvestment,
     frequencyDays,
+    timeRange,
+    customStartDate,
+    customEndDate,
     startDate,
     endDate,
     result,
@@ -40,6 +59,7 @@ export const useSimulationStore = defineStore('simulation', () => {
     loading,
     error,
     prices,
+    setTimeRange,
     runSimulation,
     formatCurrency,
     formatBtc,

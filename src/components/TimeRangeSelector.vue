@@ -1,34 +1,44 @@
 <script setup lang="ts">
-import { useComparisonStore } from '@/stores/comparison'
 import type { TimeRange } from '@/types'
 
-const store = useComparisonStore()
+const props = withDefaults(defineProps<{
+  modelValue: TimeRange
+  customStart?: string
+  customEnd?: string
+  ranges?: TimeRange[]
+}>(), {
+  ranges: () => ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '5Y', 'ALL', 'CUSTOM'],
+})
 
-const ranges: TimeRange[] = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '5Y', 'ALL', 'CUSTOM']
+const emit = defineEmits<{
+  'update:modelValue': [value: TimeRange]
+  'update:customStart': [value: string]
+  'update:customEnd': [value: string]
+}>()
 </script>
 
 <template>
   <div class="time-range-selector">
     <div class="range-buttons">
       <button
-        v-for="r in ranges"
+        v-for="r in props.ranges"
         :key="r"
         class="range-btn"
-        :class="{ active: store.timeRange === r }"
-        @click="store.setTimeRange(r)"
+        :class="{ active: props.modelValue === r }"
+        @click="emit('update:modelValue', r)"
       >
         {{ r }}
       </button>
     </div>
 
-    <div v-if="store.timeRange === 'CUSTOM'" class="custom-dates">
+    <div v-if="props.modelValue === 'CUSTOM'" class="custom-dates">
       <div class="field">
-        <label for="custom-start">From</label>
-        <input id="custom-start" type="date" v-model="store.customStartDate" />
+        <label>From</label>
+        <input type="date" :value="props.customStart" @input="emit('update:customStart', ($event.target as HTMLInputElement).value)" />
       </div>
       <div class="field">
-        <label for="custom-end">To</label>
-        <input id="custom-end" type="date" v-model="store.customEndDate" />
+        <label>To</label>
+        <input type="date" :value="props.customEnd" @input="emit('update:customEnd', ($event.target as HTMLInputElement).value)" />
       </div>
     </div>
   </div>

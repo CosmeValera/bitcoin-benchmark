@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import InputPanel from '@/components/InputPanel.vue'
 import PriceChart from '@/components/PriceChart.vue'
 import ResultsSummary from '@/components/ResultsSummary.vue'
@@ -12,6 +12,26 @@ import { useProjectionStore } from '@/stores/projection'
 const mode = ref<'historical' | 'projection'>('historical')
 const simStore = useSimulationStore()
 const projStore = useProjectionStore()
+
+// Auto-run on first switch to each mode
+const simRanOnce = ref(false)
+const projRanOnce = ref(false)
+
+onMounted(() => {
+  simStore.runSimulation()
+  simRanOnce.value = true
+})
+
+watch(mode, (m) => {
+  if (m === 'historical' && !simRanOnce.value) {
+    simStore.runSimulation()
+    simRanOnce.value = true
+  }
+  if (m === 'projection' && !projRanOnce.value) {
+    projStore.runProjection()
+    projRanOnce.value = true
+  }
+})
 </script>
 
 <template>
