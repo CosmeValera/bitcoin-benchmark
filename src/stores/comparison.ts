@@ -31,7 +31,7 @@ export const useComparisonStore = defineStore('comparison', () => {
   const hasRun = ref(false)
   const showDividendAdjusted = ref(false)
   const showDrawdown = ref(false)
-  const autoRun = ref(localStorage.getItem('autoRun') !== 'false')
+  const autoRun = ref(localStorage.getItem('autoRun') === 'true')
   const displayCurrency = ref<'USD' | 'BTC' | 'sats' | 'EUR'>('USD')
   const btcPrices = ref<Map<string, number>>(new Map()) // date → BTC price in USD
   const eurRate = ref<Map<string, number>>(new Map()) // date → EUR per USD
@@ -171,7 +171,7 @@ export const useComparisonStore = defineStore('comparison', () => {
     }
     if (displayCurrency.value === 'EUR') {
       const rate = date ? eurRate.value.get(date) : getLatestEurRate()
-      return rate ? usd * rate : usd
+      return rate ? usd / rate : usd
     }
     return usd
   }

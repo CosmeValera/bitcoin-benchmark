@@ -102,10 +102,6 @@ onMounted(() => {
             <input type="checkbox" v-model="store.showDividendAdjusted" />
             Include dividend income
           </label>
-          <label class="toggle-label">
-            <input type="checkbox" v-model="store.showDrawdown" />
-            Show drawdowns
-          </label>
         </div>
       </div>
 

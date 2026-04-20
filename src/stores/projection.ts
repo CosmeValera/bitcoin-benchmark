@@ -10,7 +10,7 @@ export const useProjectionStore = defineStore('projection', () => {
   const annualReturn = ref(10)
   const investmentYears = ref(10)
   const compoundingFrequency = ref(12) // monthly
-  const autoRun = ref(localStorage.getItem('autoRunProjection') !== 'false')
+  const autoRun = ref(localStorage.getItem('autoRunProjection') === 'true')
 
   const result = ref<ProjectionResult | null>(null)
   const hasRun = ref(false)

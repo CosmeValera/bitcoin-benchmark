@@ -40,11 +40,12 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   const timeRange = ref<TimeRange>('1Y')
   const customStartDate = ref('2020-01-01')
   const customEndDate = ref(new Date().toISOString().slice(0, 10))
+  const showDividendAdjusted = ref(false)
   const result = ref<PortfolioResult | null>(null)
   const loading = ref(false)
   const errors = ref<Map<string, string>>(new Map())
   const hasRun = ref(false)
-  const autoRun = ref(localStorage.getItem('autoRunPortfolio') !== 'false')
+  const autoRun = ref(localStorage.getItem('autoRunPortfolio') === 'true')
 
   // Computed
   const totalWeight = computed(() => {
@@ -304,6 +305,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
       range: timeRange.value,
       start: customStartDate.value,
       end: customEndDate.value,
+      div: showDividendAdjusted.value,
     }),
     () => {
       if (!autoRun.value || !hasRun.value) return
@@ -327,6 +329,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     timeRange,
     customStartDate,
     customEndDate,
+    showDividendAdjusted,
     result,
     loading,
     errors,

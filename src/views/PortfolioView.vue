@@ -66,6 +66,10 @@ onMounted(() => {
             @update:custom-end="store.customEndDate = $event"
           />
         </div>
+        <label class="toggle-label">
+          <input type="checkbox" v-model="store.showDividendAdjusted" />
+          Include dividend income
+        </label>
       </div>
 
       <div class="action-row">
@@ -183,6 +187,20 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.toggle-label input[type="checkbox"] {
+  accent-color: var(--accent);
 }
 
 .action-row {

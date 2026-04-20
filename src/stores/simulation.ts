@@ -13,7 +13,7 @@ export const useSimulationStore = defineStore('simulation', () => {
   const timeRange = ref<TimeRange>('3Y')
   const customStartDate = ref('2020-01-01')
   const customEndDate = ref(new Date().toISOString().slice(0, 10))
-  const autoRun = ref(localStorage.getItem('autoRunSimulation') !== 'false')
+  const autoRun = ref(localStorage.getItem('autoRunSimulation') === 'true')
   const result = ref<SimulationResult | null>(null)
   const hasRun = ref(false)
 
