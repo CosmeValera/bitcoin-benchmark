@@ -5,15 +5,15 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      component: () => import('../views/PortfolioView.vue'),
+      component: () => import('../views/PortfolioBuilderView.vue'),
     },
     {
       path: '/benchmark',
-      component: () => import('../views/HomeView.vue'),
+      component: () => import('../views/BenchmarkView.vue'),
     },
     {
       path: '/simulator',
-      component: () => import('../views/SimulatorView.vue'),
+      component: () => import('../views/DCASimulatorView.vue'),
     },
   ],
 })

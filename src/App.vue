@@ -26,7 +26,7 @@ function formatPrice(p: number): string {
               <span class="ticker-label">LIVE</span>
               <span class="ticker-sep">·</span>
               <span class="ticker-label">BTC</span>
-              <span class="ticker-price">{{ formatPrice(price) }}</span>
+              <a href="https://coinmarketcap.com/currencies/bitcoin/" target="_blank" rel="noopener" class="ticker-price">{{ formatPrice(price) }}</a>
               <span
                 v-if="change24h != null"
                 class="ticker-change"
@@ -142,6 +142,12 @@ header {
   font-family: 'JetBrains Mono', monospace;
   color: var(--text);
   font-weight: 700;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.ticker-price:hover {
+  color: var(--accent);
 }
 
 .ticker-change {

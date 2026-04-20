@@ -31,7 +31,7 @@ export const useComparisonStore = defineStore('comparison', () => {
   const hasRun = ref(false)
   const showDividendAdjusted = ref(false)
   const showDrawdown = ref(false)
-  const autoRun = ref(localStorage.getItem('autoRun') === 'true')
+  const autoRun = ref(localStorage.getItem('autoRun') !== 'false')
   const displayCurrency = ref<'USD' | 'BTC' | 'sats' | 'EUR'>('USD')
   const btcPrices = ref<Map<string, number>>(new Map()) // date → BTC price in USD
   const eurRate = ref<Map<string, number>>(new Map()) // date → EUR per USD

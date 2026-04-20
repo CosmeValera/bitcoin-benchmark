@@ -45,7 +45,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   const loading = ref(false)
   const errors = ref<Map<string, string>>(new Map())
   const hasRun = ref(false)
-  const autoRun = ref(localStorage.getItem('autoRunPortfolio') === 'true')
+  const autoRun = ref(localStorage.getItem('autoRunPortfolio') !== 'false')
 
   // Computed
   const totalWeight = computed(() => {
