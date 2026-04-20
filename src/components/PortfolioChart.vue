@@ -89,11 +89,25 @@ const portfolioCrosshairPlugin = {
       if (cardEl) {
         const label = chart.data.labels[dataIndex] || ''
         let html = `<div class="crosshair-date">${label}</div>`
+        const rows: { label: string; color: string; val: number; isPortfolio: boolean }[] = []
         for (const ds of chart.data.datasets) {
           const val = ds.data[dataIndex]
           if (val == null) continue
-          const sign = val >= 0 ? '+' : ''
-          html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${ds.borderColor}"></span>${ds.label}: <strong>${sign}${val.toFixed(1)}%</strong></div>`
+          rows.push({ label: ds.label, color: ds.borderColor, val, isPortfolio: ds.label === 'Portfolio' })
+        }
+        // Portfolio first, then rest sorted by value descending
+        const portfolio = rows.filter(r => r.isPortfolio)
+        const rest = rows.filter(r => !r.isPortfolio).sort((a, b) => b.val - a.val)
+        for (const r of portfolio) {
+          const sign = r.val >= 0 ? '+' : ''
+          html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: <strong>${sign}${r.val.toFixed(1)}%</strong></div>`
+        }
+        if (portfolio.length && rest.length) {
+          html += `<div class="crosshair-separator"></div>`
+        }
+        for (const r of rest) {
+          const sign = r.val >= 0 ? '+' : ''
+          html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: <strong>${sign}${r.val.toFixed(1)}%</strong></div>`
         }
         cardEl.innerHTML = html
         cardEl.style.display = 'block'
@@ -362,6 +376,12 @@ h2 {
   color: var(--text-muted);
   line-height: 1.5;
   white-space: nowrap;
+}
+
+.crosshair-card :deep(.crosshair-separator) {
+  border-top: 1px solid var(--text-muted);
+  opacity: 0.3;
+  margin: 0.2rem 0;
 }
 
 .crosshair-card :deep(.crosshair-dot) {

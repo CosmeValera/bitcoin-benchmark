@@ -89,12 +89,18 @@ const crosshairPlugin = {
       if (cardEl) {
         const label = chart.data.labels[dataIndex] || ''
         let html = `<div class="crosshair-date">${label}</div>`
+        const rows: { label: string; color: string; val: number }[] = []
         for (const ds of chart.data.datasets) {
           if (ds.label.endsWith(' DD')) continue
           const val = ds.data[dataIndex]
           if (val == null) continue
-          const sign = val >= 0 ? '+' : ''
-          html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${ds.borderColor}"></span>${ds.label}: <strong>${sign}${val.toFixed(1)}%</strong></div>`
+          rows.push({ label: ds.label, color: ds.borderColor, val })
+        }
+        // Sort by value descending (highest percentage first)
+        rows.sort((a, b) => b.val - a.val)
+        for (const r of rows) {
+          const sign = r.val >= 0 ? '+' : ''
+          html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: <strong>${sign}${r.val.toFixed(1)}%</strong></div>`
         }
         cardEl.innerHTML = html
         cardEl.style.display = 'block'
