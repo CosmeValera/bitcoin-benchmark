@@ -308,4 +308,39 @@ footer {
   letter-spacing: 0.08em;
   opacity: 0.6;
 }
+
+@media (max-width: 600px) {
+  header {
+    padding: 1rem 1rem;
+  }
+
+  .header-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  h1 {
+    font-size: 1.15rem;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+  }
+
+  .nav-tabs {
+    margin-top: 0.75rem;
+  }
+
+  .tab {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
 </style>
