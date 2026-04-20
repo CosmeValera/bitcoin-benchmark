@@ -109,7 +109,7 @@ const crosshairPlugin = {
     }
   },
 }
-ChartJS.register(crosshairPlugin)
+// Note: crosshairPlugin is passed as a local plugin via :plugins prop, not registered globally
 
 const store = useComparisonStore()
 const { theme } = useTheme()
@@ -258,20 +258,7 @@ const chartOptions = computed(() => {
         },
       },
       tooltip: {
-        backgroundColor: cssVar('--chart-tooltip-bg'),
-        titleColor: cssVar('--chart-tooltip-title'),
-        bodyColor: cssVar('--chart-tooltip-body'),
-        borderColor: cssVar('--chart-tooltip-border'),
-        borderWidth: 1,
-        callbacks: {
-          label: (ctx: any) => {
-            if (ctx.dataset.label.endsWith(' DD')) return ''
-            const val = ctx.parsed.y
-            const sign = val >= 0 ? '+' : ''
-            return ` ${ctx.dataset.label}: ${sign}${val.toFixed(1)}%`
-          },
-        },
-        filter: (item: any) => item.dataset.label && !item.dataset.label.endsWith(' DD'),
+        enabled: false,
       },
     },
     scales: {
@@ -303,7 +290,7 @@ const chartOptions = computed(() => {
     </div>
     <div class="chart-container" @keydown="onKeydown" tabindex="0">
       <div class="crosshair-card"></div>
-      <Line ref="lineChart" :data="chartData" :options="chartOptions" />
+      <Line ref="lineChart" :data="chartData" :options="chartOptions" :plugins="[crosshairPlugin]" />
     </div>
   </div>
 </template>

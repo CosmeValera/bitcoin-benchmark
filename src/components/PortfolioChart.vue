@@ -107,7 +107,7 @@ const portfolioCrosshairPlugin = {
     }
   },
 }
-ChartJS.register(portfolioCrosshairPlugin)
+// Note: portfolioCrosshairPlugin is passed as a local plugin via :plugins prop, not registered globally
 
 const store = usePortfolioStore()
 const { theme } = useTheme()
@@ -213,18 +213,7 @@ const chartOptions = computed(() => {
         display: false,
       },
       tooltip: {
-        backgroundColor: cssVar('--chart-tooltip-bg'),
-        titleColor: cssVar('--chart-tooltip-title'),
-        bodyColor: cssVar('--chart-tooltip-body'),
-        borderColor: cssVar('--chart-tooltip-border'),
-        borderWidth: 1,
-        callbacks: {
-          label: (ctx: any) => {
-            const val = ctx.parsed.y
-            const sign = val >= 0 ? '+' : ''
-            return ` ${ctx.dataset.label}: ${sign}${val.toFixed(1)}%`
-          },
-        },
+        enabled: false,
       },
     },
     scales: {
@@ -265,7 +254,7 @@ const chartOptions = computed(() => {
     </div>
     <div class="chart-container" @keydown="onKeydown" tabindex="0">
       <div class="crosshair-card"></div>
-      <Line ref="lineChart" :data="chartData" :options="chartOptions" />
+      <Line ref="lineChart" :data="chartData" :options="chartOptions" :plugins="[portfolioCrosshairPlugin]" />
     </div>
   </div>
 </template>
