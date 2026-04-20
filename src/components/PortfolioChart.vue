@@ -89,11 +89,11 @@ const portfolioCrosshairPlugin = {
       if (cardEl) {
         const label = chart.data.labels[dataIndex] || ''
         let html = `<div class="crosshair-date">${label}</div>`
-        const rows: { label: string; color: string; val: number; isPortfolio: boolean }[] = []
+        const rows: { label: string; color: string; val: number; isPortfolio: boolean; weightPct?: number }[] = []
         for (const ds of chart.data.datasets) {
           const val = ds.data[dataIndex]
           if (val == null) continue
-          rows.push({ label: ds.label, color: ds.borderColor, val, isPortfolio: ds.label === 'Portfolio' })
+          rows.push({ label: ds.label, color: ds.borderColor, val, isPortfolio: ds.label === 'Portfolio', weightPct: ds.weightPct })
         }
         // Portfolio first, then rest sorted by value descending
         const portfolio = rows.filter(r => r.isPortfolio)
@@ -107,7 +107,8 @@ const portfolioCrosshairPlugin = {
         }
         for (const r of rest) {
           const sign = r.val >= 0 ? '+' : ''
-          html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: <strong>${sign}${r.val.toFixed(1)}%</strong></div>`
+          const weight = r.weightPct != null ? `<span class="crosshair-weight">${r.weightPct.toFixed(0)}%</span>` : ''
+          html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${weight}${r.label}: <strong>${sign}${r.val.toFixed(1)}%</strong></div>`
         }
         cardEl.innerHTML = html
         cardEl.style.display = 'block'
@@ -163,6 +164,7 @@ const chartData = computed(() => {
     .map((br) => br.date)
 
   // Individual asset lines (thin, semi-transparent)
+  const total = store.totalWeight || 1
   const assetDatasets = assetData.map(({ asset, prices, normalizedReturns }) => {
     const dateToReturn = new Map<string, number>()
     for (let i = 0; i < prices.length; i++) {
@@ -177,6 +179,8 @@ const chartData = computed(() => {
       }
       return lastVal
     })
+    const rawWeight = store.allocations[asset.id] ?? 0
+    const weightPct = (rawWeight / total) * 100
     return {
       label: asset.name,
       data,
@@ -188,6 +192,7 @@ const chartData = computed(() => {
       borderWidth: 1.5,
       borderDash: [4, 2],
       spanGaps: true,
+      weightPct,
     }
   })
 
@@ -382,6 +387,19 @@ h2 {
   border-top: 1px solid var(--text-muted);
   opacity: 0.3;
   margin: 0.2rem 0;
+}
+
+.crosshair-card :deep(.crosshair-weight) {
+  font-size: 0.65rem;
+  background: var(--card-bg);
+  border: 1px solid var(--text-muted);
+  border-radius: 3px;
+  padding: 0 0.25rem;
+  margin-right: 0.25rem;
+  opacity: 0.7;
+  min-width: 2rem;
+  text-align: center;
+  display: inline-block;
 }
 
 .crosshair-card :deep(.crosshair-dot) {
