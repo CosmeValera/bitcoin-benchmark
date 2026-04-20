@@ -23,6 +23,7 @@ const emit = defineEmits<{
       <button
         v-for="r in props.ranges"
         :key="r"
+        type="button"
         class="range-btn"
         :class="{ active: props.modelValue === r }"
         @click="emit('update:modelValue', r)"

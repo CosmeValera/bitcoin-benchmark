@@ -51,6 +51,7 @@ export const useSimulationStore = defineStore('simulation', () => {
     localStorage.setItem('autoRunSimulation', String(v))
   })
 
+  let simAutoTimer: ReturnType<typeof setTimeout> | null = null
   watch(
     () => ({
       range: timeRange.value,
@@ -60,7 +61,12 @@ export const useSimulationStore = defineStore('simulation', () => {
       freq: frequencyDays.value,
     }),
     () => {
-      if (autoRun.value && hasRun.value) runSimulation()
+      if (!autoRun.value || !hasRun.value) return
+      if (loading.value) return
+      if (simAutoTimer) clearTimeout(simAutoTimer)
+      simAutoTimer = setTimeout(() => {
+        runSimulation()
+      }, 800)
     },
     { deep: true },
   )
