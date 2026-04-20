@@ -73,12 +73,23 @@ function handleSubmit() {
         </div>
       </div>
 
-      <button type="submit" class="btn-primary">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-        </svg>
-        CALCULATE PROJECTION
-      </button>
+      <div class="action-row">
+        <button type="submit" class="btn-primary">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+          </svg>
+          CALCULATE PROJECTION
+        </button>
+        <button
+          type="button"
+          class="btn-auto"
+          :class="{ active: store.autoRun }"
+          @click="store.autoRun = !store.autoRun"
+          title="Auto-calculate when parameters change"
+        >
+          Auto
+        </button>
+      </div>
     </form>
   </section>
 </template>
@@ -143,9 +154,14 @@ select:focus {
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
+.action-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .btn-primary {
   font-family: 'JetBrains Mono', monospace;
-  width: 100%;
+  flex: 1;
   padding: 0.85rem;
   border: none;
   border-radius: 8px;
@@ -165,6 +181,33 @@ select:focus {
 
 .btn-primary:hover {
   background: var(--accent-hover);
+}
+
+.btn-auto {
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.btn-auto:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+.btn-auto.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
 }
 
 @media (max-width: 500px) {

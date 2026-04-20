@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useProjection, type ProjectionResult } from '@/composables/useProjection'
 
 export const useProjectionStore = defineStore('projection', () => {
@@ -10,6 +10,7 @@ export const useProjectionStore = defineStore('projection', () => {
   const annualReturn = ref(10)
   const investmentYears = ref(10)
   const compoundingFrequency = ref(12) // monthly
+  const autoRun = ref(localStorage.getItem('autoRunProjection') !== 'false')
 
   const result = ref<ProjectionResult | null>(null)
   const hasRun = ref(false)
@@ -28,12 +29,31 @@ export const useProjectionStore = defineStore('projection', () => {
     hasRun.value = true
   }
 
+  watch(autoRun, (v) => {
+    localStorage.setItem('autoRunProjection', String(v))
+  })
+
+  watch(
+    () => ({
+      initial: initialInvestment.value,
+      monthly: monthlyContribution.value,
+      rate: annualReturn.value,
+      years: investmentYears.value,
+      freq: compoundingFrequency.value,
+    }),
+    () => {
+      if (autoRun.value && hasRun.value) runProjection()
+    },
+    { deep: true },
+  )
+
   return {
     initialInvestment,
     monthlyContribution,
     annualReturn,
     investmentYears,
     compoundingFrequency,
+    autoRun,
     result,
     hasRun,
     runProjection,

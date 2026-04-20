@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useBitcoinPrice } from '@/composables/useBitcoinPrice'
 import { useCalculator, type SimulationResult } from '@/composables/useCalculator'
 import { getDateForRange, type TimeRange } from '@/types'
@@ -13,6 +13,7 @@ export const useSimulationStore = defineStore('simulation', () => {
   const timeRange = ref<TimeRange>('3Y')
   const customStartDate = ref('2020-01-01')
   const customEndDate = ref(new Date().toISOString().slice(0, 10))
+  const autoRun = ref(localStorage.getItem('autoRunSimulation') !== 'false')
   const result = ref<SimulationResult | null>(null)
   const hasRun = ref(false)
 
@@ -46,12 +47,31 @@ export const useSimulationStore = defineStore('simulation', () => {
     }
   }
 
+  watch(autoRun, (v) => {
+    localStorage.setItem('autoRunSimulation', String(v))
+  })
+
+  watch(
+    () => ({
+      range: timeRange.value,
+      start: customStartDate.value,
+      end: customEndDate.value,
+      investment: monthlyInvestment.value,
+      freq: frequencyDays.value,
+    }),
+    () => {
+      if (autoRun.value && hasRun.value) runSimulation()
+    },
+    { deep: true },
+  )
+
   return {
     monthlyInvestment,
     frequencyDays,
     timeRange,
     customStartDate,
     customEndDate,
+    autoRun,
     startDate,
     endDate,
     result,
