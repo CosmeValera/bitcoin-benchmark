@@ -58,6 +58,14 @@ function formatPrice(p: number): string {
 
     <footer>
       <p class="footer-disclaimer">Built for educational purposes · Not financial advice · Powered by real market data</p>
+      <div class="footer-learn">
+        <span class="footer-learn-label">Learn more</span>
+        <a href="https://cosmevalera.dev/blog/bitcoin-101/?mode=series" target="_blank" rel="noopener">BTC 101: Why Bitcoin</a>
+        <span class="footer-sep">·</span>
+        <a href="https://cosmevalera.dev/blog/bitcoin-102/?mode=series" target="_blank" rel="noopener">BTC 102: How to Buy</a>
+        <span class="footer-sep">·</span>
+        <a href="https://cosmevalera.dev/blog/bitcoin-103/?mode=series" target="_blank" rel="noopener">BTC 103: Cold Storage</a>
+      </div>
       <p class="footer-brand">Bitcoin Finance Lab · v1.0</p>
     </footer>
   </div>
@@ -251,6 +259,44 @@ footer {
   color: var(--text-muted);
   font-size: 0.72rem;
   margin: 0 0 0.35rem;
+}
+
+.footer-learn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.footer-learn-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 0.2rem;
+}
+
+.footer-learn a {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.footer-learn a:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+.footer-sep {
+  color: var(--text-muted);
+  opacity: 0.35;
+  font-size: 0.7rem;
 }
 
 .footer-brand {
