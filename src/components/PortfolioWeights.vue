@@ -117,6 +117,17 @@ const activeCount = computed(() => {
   return store.allAssets.filter((a) => (store.allocations[a.id] ?? 0) > 0).length
 })
 
+// Normalized percentages (always sum to 100% when any asset is active)
+const normalizedPct = computed(() => {
+  const total = store.totalWeight
+  const result: Record<string, number> = {}
+  for (const a of store.allAssets) {
+    const raw = store.allocations[a.id] ?? 0
+    result[a.id] = total > 0 ? (raw / total) * 100 : 0
+  }
+  return result
+})
+
 // Donut chart data
 const donutSlices = computed(() => {
   const total = store.totalWeight
@@ -153,9 +164,12 @@ const CIRC = 2 * Math.PI * R
         <p class="weights-subtitle">Distribute weight across Bitcoin, treasuries, preferreds and indices.</p>
       </div>
       <div class="donut-area">
-        <div class="donut-stats">
-          <span class="donut-stats-label">TOTAL</span>
-          <span class="donut-stats-value" :class="{ over: store.totalWeight > 100 }">{{ store.totalWeight }}%</span>
+        <div class="donut-breakdown" v-if="donutSlices.length > 0">
+          <div v-for="slice in donutSlices" :key="slice.id" class="breakdown-item">
+            <span class="breakdown-dot" :style="{ background: slice.color }"></span>
+            <span class="breakdown-name">{{ shortName(slice.name) }}</span>
+            <span class="breakdown-pct">{{ Math.round(slice.pct) }}%</span>
+          </div>
         </div>
         <div class="donut-wrap">
           <svg class="donut" viewBox="0 0 42 42" v-if="store.totalWeight > 0">
@@ -211,7 +225,7 @@ const CIRC = 2 * Math.PI * R
             <span class="cell-name">{{ shortName(asset.name) }}</span>
             <span v-if="tickerBadge(asset.name) || asset.ticker !== asset.name" class="ticker-badge">{{ tickerBadge(asset.name) || asset.ticker }}</span>
             <span class="cell-value" :class="{ highlight: (store.allocations[asset.id] ?? 0) > 0 }">
-              {{ store.allocations[asset.id] ?? 0 }}%
+              {{ Math.round(normalizedPct[asset.id] ?? 0) }}%
             </span>
           </div>
           <input
@@ -293,7 +307,7 @@ const CIRC = 2 * Math.PI * R
             <span class="dot" :style="{ background: asset.color }"></span>
             <span class="cell-name">{{ asset.name }}</span>
             <span class="cell-value" :class="{ highlight: (store.allocations[asset.id] ?? 0) > 0 }">
-              {{ store.allocations[asset.id] ?? 0 }}%
+              {{ Math.round(normalizedPct[asset.id] ?? 0) }}%
             </span>
             <button class="remove-btn" @click="store.removeCustomAsset(asset.id)" title="Remove">
               <svg viewBox="0 0 20 20" fill="currentColor" width="10" height="10">
@@ -358,33 +372,41 @@ h2 {
   flex-shrink: 0;
 }
 
-.donut-stats {
+.donut-breakdown {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 0;
+  gap: 0.15rem;
 }
 
-.donut-stats-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.55rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.breakdown-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.breakdown-name {
   color: var(--text-muted);
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.donut-stats-value {
+.breakdown-pct {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--accent);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-
-.donut-stats-value.over {
-  color: var(--warning);
+  color: var(--text);
+  font-size: 0.65rem;
+  margin-left: auto;
 }
 
 .donut-wrap {
