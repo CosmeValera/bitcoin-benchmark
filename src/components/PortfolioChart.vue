@@ -64,7 +64,11 @@ const portfolioCrosshairPlugin = {
       if (idx != null) dataIndex = Math.round(idx)
     }
 
-    if (xPixel == null || xPixel < chartArea.left || xPixel > chartArea.right) return
+    if (xPixel == null || xPixel < chartArea.left || xPixel > chartArea.right) {
+      const cardEl = chart.canvas?.parentElement?.querySelector('.crosshair-card') as HTMLElement | null
+      if (cardEl) cardEl.style.display = 'none'
+      return
+    }
 
     // Draw vertical line
     ctx.save()
@@ -89,26 +93,35 @@ const portfolioCrosshairPlugin = {
       if (cardEl) {
         const label = chart.data.labels[dataIndex] || ''
         let html = `<div class="crosshair-date">${label}</div>`
-        const rows: { label: string; color: string; val: number; isPortfolio: boolean; weightPct?: number }[] = []
+        const rows: { label: string; color: string; val: number | null; isPortfolio: boolean; weightPct?: number; waiting: boolean }[] = []
         for (const ds of chart.data.datasets) {
           const val = ds.data[dataIndex]
-          if (val == null) continue
-          rows.push({ label: ds.label, color: ds.borderColor, val, isPortfolio: ds.label === 'Portfolio', weightPct: ds.weightPct })
+          const isPortfolio = ds.label === 'Portfolio'
+          // Show all assets: available ones with their value, unavailable as "Waiting"
+          if (isPortfolio && val == null) continue
+          rows.push({ label: ds.label, color: ds.borderColor, val, isPortfolio, weightPct: ds.weightPct, waiting: val == null })
         }
-        // Portfolio first, then rest sorted by value descending
+        // Portfolio first, then rest sorted by value descending (waiting assets at the bottom)
         const portfolio = rows.filter(r => r.isPortfolio)
-        const rest = rows.filter(r => !r.isPortfolio).sort((a, b) => b.val - a.val)
+        const rest = rows.filter(r => !r.isPortfolio).sort((a, b) => {
+          if (a.waiting !== b.waiting) return a.waiting ? 1 : -1
+          return (b.val ?? 0) - (a.val ?? 0)
+        })
         for (const r of portfolio) {
-          const sign = r.val >= 0 ? '+' : ''
-          html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: <strong>${sign}${r.val.toFixed(1)}%</strong></div>`
+          const sign = (r.val ?? 0) >= 0 ? '+' : ''
+          html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: <strong>${sign}${(r.val ?? 0).toFixed(1)}%</strong></div>`
         }
         if (portfolio.length && rest.length) {
           html += `<div class="crosshair-separator"></div>`
         }
         for (const r of rest) {
-          const sign = r.val >= 0 ? '+' : ''
           const weight = r.weightPct != null ? `<span class="crosshair-weight">${r.weightPct.toFixed(0)}%</span>` : ''
-          html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${weight}${r.label}: <strong>${sign}${r.val.toFixed(1)}%</strong></div>`
+          if (r.waiting) {
+            html += `<div class="crosshair-row crosshair-waiting"><span class="crosshair-dot" style="background:${r.color}"></span>${weight}${r.label}: <strong>Waiting</strong></div>`
+          } else {
+            const sign = (r.val ?? 0) >= 0 ? '+' : ''
+            html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${weight}${r.label}: <strong>${sign}${(r.val ?? 0).toFixed(1)}%</strong></div>`
+          }
         }
         cardEl.innerHTML = html
         cardEl.style.display = 'block'
@@ -387,6 +400,11 @@ h2 {
   border-top: 1px solid var(--text-muted);
   opacity: 0.3;
   margin: 0.2rem 0;
+}
+
+.crosshair-card :deep(.crosshair-waiting) {
+  opacity: 0.45;
+  font-style: italic;
 }
 
 .crosshair-card :deep(.crosshair-weight) {

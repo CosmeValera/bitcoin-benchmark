@@ -64,7 +64,11 @@ const crosshairPlugin = {
       if (idx != null) dataIndex = Math.round(idx)
     }
 
-    if (xPixel == null || xPixel < chartArea.left || xPixel > chartArea.right) return
+    if (xPixel == null || xPixel < chartArea.left || xPixel > chartArea.right) {
+      const cardEl = chart.canvas?.parentElement?.querySelector('.crosshair-card') as HTMLElement | null
+      if (cardEl) cardEl.style.display = 'none'
+      return
+    }
 
     // Draw vertical line
     ctx.save()

@@ -185,24 +185,15 @@ export const usePortfolioStore = defineStore('portfolio', () => {
         }
       }
 
-      // Blend all assets that have ever had data (using carried-forward values)
-      let availableWeightSum = 0
-      const available: { weight: number; ret: number }[] = []
+      // Blend all assets — unavailable assets are treated as 0% return (cash)
+      // so their weight still dilutes the portfolio proportionally
+      let weightedReturn = 0
       for (const ad of assetResults) {
-        const ret = lastKnown.get(ad.asset.id)
-        if (ret != null) {
-          const weight = normalizedWeights[ad.asset.id] ?? 0
-          availableWeightSum += weight
-          available.push({ weight, ret })
-        }
+        const ret = lastKnown.get(ad.asset.id) ?? 0 // 0% if not yet listed
+        const weight = normalizedWeights[ad.asset.id] ?? 0
+        weightedReturn += (ret * weight) / 100
       }
-      if (availableWeightSum > 0) {
-        let weightedReturn = 0
-        for (const { weight, ret } of available) {
-          weightedReturn += (ret * weight) / availableWeightSum
-        }
-        blendedReturns.push({ date, value: weightedReturn })
-      }
+      blendedReturns.push({ date, value: weightedReturn })
     }
 
     // Compute portfolio-level metrics
