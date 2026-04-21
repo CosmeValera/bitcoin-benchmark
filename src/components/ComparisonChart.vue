@@ -112,7 +112,8 @@ const crosshairPlugin = {
           const price = priceLookup[r.label]?.[dataIndex]
           if (price != null) {
             const sym = priceSymbol
-            const fmt = price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            const dec = priceSymbol === 'sats ' ? 0 : 2
+            const fmt = price.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec })
             html += isSingle
               ? `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: <strong>${sym}${fmt}</strong> (${pct})</div>`
               : `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: <strong>${pct}</strong> (${sym}${fmt})</div>`
@@ -352,7 +353,7 @@ const chartOptions = computed(() => {
         ? {
             price: {
               position: 'right' as const,
-              ticks: { color: cssVar('--chart-tick'), font: { size: 11 }, callback: (val: any) => `${store.currencySymbol()}${Number(val).toLocaleString()}` },
+              ticks: { color: cssVar('--chart-tick'), font: { size: 11 }, callback: (val: any) => { const d = store.displayCurrency === 'sats' ? 0 : 2; return `${store.currencySymbol()}${Number(val).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })}` } },
               grid: { drawOnChartArea: false },
               title: { display: true, text: `${store.assetsData[0].asset.ticker} Price (${store.displayCurrency})`, color: cssVar('--chart-tick'), font: { size: 11 } },
             },
