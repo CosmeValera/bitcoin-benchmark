@@ -93,15 +93,22 @@ const portfolioCrosshairPlugin = {
       if (cardEl) {
         const label = chart.data.labels[dataIndex] || ''
         let html = `<div class="crosshair-date">${label}</div>`
+        // Detect single-asset mode by presence of §price dataset
+        let priceVal: number | null = null
+        const isSingle = chart.data.datasets.some((d: any) => d.label?.endsWith(' §price'))
         const rows: { label: string; color: string; val: number | null; isPortfolio: boolean; weightPct?: number; waiting: boolean }[] = []
         for (const ds of chart.data.datasets) {
           const val = ds.data[dataIndex]
-          const isPortfolio = ds.label === 'Portfolio'
+          if (ds.label?.endsWith(' §price')) {
+            priceVal = val
+            continue
+          }
+          const isPortfolio = ds.label === 'Portfolio' || isSingle
           // Show all assets: available ones with their value, unavailable as "Waiting"
           if (isPortfolio && val == null) continue
           rows.push({ label: ds.label, color: ds.borderColor, val, isPortfolio, weightPct: ds.weightPct, waiting: val == null })
         }
-        // Portfolio first, then rest sorted by value descending (waiting assets at the bottom)
+        // Portfolio/main asset first, then rest sorted by value descending
         const portfolio = rows.filter(r => r.isPortfolio)
         const rest = rows.filter(r => !r.isPortfolio).sort((a, b) => {
           if (a.waiting !== b.waiting) return a.waiting ? 1 : -1
@@ -109,7 +116,12 @@ const portfolioCrosshairPlugin = {
         })
         for (const r of portfolio) {
           const sign = (r.val ?? 0) >= 0 ? '+' : ''
-          html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: <strong>${sign}${(r.val ?? 0).toFixed(1)}%</strong></div>`
+          if (priceVal != null) {
+            const fmt = priceVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: <strong>$${fmt}</strong> (${sign}${(r.val ?? 0).toFixed(1)}%)</div>`
+          } else {
+            html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: <strong>${sign}${(r.val ?? 0).toFixed(1)}%</strong></div>`
+          }
         }
         if (portfolio.length && rest.length) {
           html += `<div class="crosshair-separator"></div>`
@@ -165,6 +177,12 @@ function downloadPng() {
 function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
+
+const singleAssetInfo = computed(() => {
+  if (!store.result || store.result.assetData.length !== 1) return null
+  if (Object.values(store.allocations).filter(w => w > 0).length !== 1) return null
+  return store.result.assetData[0].asset
+})
 
 const chartData = computed(() => {
   if (!store.result) return { labels: [], datasets: [] }
@@ -263,19 +281,41 @@ const chartData = computed(() => {
     blendedData = labels.map((d) => dateToBlend.get(d) ?? null)
   }
 
+  // Single-asset mode: show asset name & color instead of "Portfolio", add price axis
+  const singleAsset = singleAssetInfo.value ? assetData[0] : null
+
   const portfolioDataset = {
-    label: 'Portfolio',
+    label: singleAsset ? singleAsset.asset.name : 'Portfolio',
     data: blendedData,
-    borderColor: cssVar('--accent'),
+    borderColor: singleAsset ? singleAsset.asset.color : cssVar('--accent'),
     backgroundColor: 'transparent',
     tension: 0.3,
     pointRadius: 0,
     pointHoverRadius: 5,
     borderWidth: 3,
+    borderDash: [],
     spanGaps: true,
   }
 
-  return { labels, datasets: [portfolioDataset, ...assetDatasets] }
+  const datasets: any[] = [portfolioDataset]
+
+  if (singleAsset) {
+    // Hidden price dataset for tooltip + right Y-axis
+    const dateToPrice = new Map<string, number>()
+    for (const p of singleAsset.prices) dateToPrice.set(p.date, p.price)
+    let last: number | null = null
+    datasets.push({
+      label: `${singleAsset.asset.name} §price`,
+      data: labels.map(d => { const v = dateToPrice.get(d); if (v != null) last = v; return last }),
+      borderColor: 'transparent', backgroundColor: 'transparent',
+      borderWidth: 0, pointRadius: 0, pointHoverRadius: 0,
+      spanGaps: true, yAxisID: 'price',
+    })
+  } else {
+    datasets.push(...assetDatasets)
+  }
+
+  return { labels, datasets }
 })
 
 const chartOptions = computed(() => {
@@ -308,6 +348,16 @@ const chartOptions = computed(() => {
         },
         grid: { color: cssVar('--chart-grid') },
       },
+      ...(singleAssetInfo.value
+        ? {
+            price: {
+              position: 'right' as const,
+              ticks: { color: cssVar('--chart-tick'), font: { size: 11 }, callback: (val: any) => `$${Number(val).toLocaleString()}` },
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: `${singleAssetInfo.value.ticker} Price (USD)`, color: cssVar('--chart-tick'), font: { size: 11 } },
+            },
+          }
+        : {}),
     },
   }
 })
@@ -322,10 +372,11 @@ const chartOptions = computed(() => {
       </div>
       <div class="chart-legend">
         <span class="legend-item">
-          <span class="legend-dot accent"></span>
-          Portfolio
+          <span v-if="singleAssetInfo" class="legend-dot" :style="{ background: singleAssetInfo.color }"></span>
+          <span v-else class="legend-dot accent"></span>
+          {{ singleAssetInfo ? singleAssetInfo.name : 'Portfolio' }}
         </span>
-        <span class="legend-item">
+        <span v-if="!singleAssetInfo" class="legend-item">
           <span class="legend-dot muted"></span>
           Benchmark
         </span>
