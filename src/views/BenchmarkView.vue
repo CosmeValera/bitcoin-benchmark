@@ -164,28 +164,30 @@ onMounted(() => {
 
       <PerformanceTable />
 
-      <div class="panel-divider"></div>
-
-      <!-- Advanced Analytics (collapsed by default) -->
-      <button class="btn-advanced-toggle" @click="toggleAdvanced">
-        <svg
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          width="12"
-          height="12"
-          class="chevron"
-          :class="{ open: showAdvanced }"
-        >
-          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-        </svg>
-        {{ showAdvanced ? 'Hide' : 'Show' }} Advanced Analytics
-      </button>
-
-      <template v-if="showAdvanced">
-        <div ref="advancedRef" class="panel-divider"></div>
-        <RiskReturnScatter />
+      <template v-if="store.assetsData.length > 1">
         <div class="panel-divider"></div>
-        <CorrelationMatrix />
+
+        <!-- Advanced Analytics (collapsed by default) -->
+        <button class="btn-advanced-toggle" @click="toggleAdvanced">
+          <svg
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            width="12"
+            height="12"
+            class="chevron"
+            :class="{ open: showAdvanced }"
+          >
+            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+          </svg>
+          {{ showAdvanced ? 'Hide' : 'Show' }} Advanced Analytics
+        </button>
+
+        <template v-if="showAdvanced">
+          <div ref="advancedRef" class="panel-divider"></div>
+          <RiskReturnScatter />
+          <div class="panel-divider"></div>
+          <CorrelationMatrix />
+        </template>
       </template>
 
       <div class="perf-actions">
@@ -274,6 +276,7 @@ onMounted(() => {
 .time-range-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 1rem;
 }
 
