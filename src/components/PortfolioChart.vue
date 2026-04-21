@@ -21,6 +21,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 // Price lookup for tooltip: asset name → array of prices aligned to chart labels
 // Updated each time chartData recomputes; read by the crosshair plugin via closure
 let priceLookup: Record<string, (number | null)[]> = {}
+let priceSymbol = '$'
 
 // Crosshair plugin (same as ComparisonChart)
 const portfolioCrosshairPlugin = {
@@ -119,10 +120,11 @@ const portfolioCrosshairPlugin = {
           const pct = `${sign}${(r.val ?? 0).toFixed(1)}%`
           const price = priceLookup[r.label]?.[dataIndex]
           if (price != null) {
+            const sym = priceSymbol
             const fmt = price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
             return isSingle
-              ? `<strong>$${fmt}</strong> (${pct})`
-              : `<strong>${pct}</strong> ($${fmt})`
+              ? `<strong>${sym}${fmt}</strong> (${pct})`
+              : `<strong>${pct}</strong> (${sym}${fmt})`
           }
           return `<strong>${pct}</strong>`
         }
@@ -190,6 +192,10 @@ const singleAssetInfo = computed(() => {
 })
 
 const chartData = computed(() => {
+  // Track currency and rate maps so price lookup recomputes on change
+  void store.displayCurrency
+  void store.btcPrices
+  void store.eurRate
   if (!store.result) return { labels: [], datasets: [] }
 
   const { blendedReturns, assetData } = store.result
@@ -286,15 +292,36 @@ const chartData = computed(() => {
     blendedData = labels.map((d) => dateToBlend.get(d) ?? null)
   }
 
-  // Build price lookup for tooltip (all assets, keyed by label aligned to chart labels)
+  // Build price lookup for tooltip (converted to display currency, with carry-forward rates)
+  const currency = store.displayCurrency
+  let lastRate: number | null = null
+  const ratePerLabel = labels.map(d => {
+    let rate: number | undefined
+    if (currency === 'BTC' || currency === 'sats') rate = store.btcPrices.get(d)
+    else if (currency === 'EUR') rate = store.eurRate.get(d)
+    if (rate != null) lastRate = rate
+    return lastRate
+  })
   const lookup: Record<string, (number | null)[]> = {}
   for (const { asset, prices } of assetData) {
-    const dateToPrice = new Map<string, number>()
-    for (const p of prices) dateToPrice.set(p.date, p.price)
-    let last: number | null = null
-    lookup[asset.name] = labels.map(d => { const v = dateToPrice.get(d); if (v != null) last = v; return last })
+    const dateToUsd = new Map<string, number>()
+    for (const p of prices) dateToUsd.set(p.date, p.price)
+    let lastUsd: number | null = null
+    lookup[asset.name] = labels.map((d, i) => {
+      const usd = dateToUsd.get(d)
+      if (usd != null) lastUsd = usd
+      if (lastUsd == null) return null
+      if (currency === 'USD') return lastUsd
+      const r = ratePerLabel[i]
+      if (r == null) return null
+      if (currency === 'EUR') return lastUsd / r
+      if (currency === 'BTC') return lastUsd / r
+      if (currency === 'sats') return (lastUsd / r) * 1e8
+      return lastUsd
+    })
   }
   priceLookup = lookup
+  priceSymbol = store.currencySymbol()
 
   // Single-asset mode: show asset name & color instead of "Portfolio", add price axis
   const singleAsset = singleAssetInfo.value ? assetData[0] : null
@@ -364,9 +391,9 @@ const chartOptions = computed(() => {
         ? {
             price: {
               position: 'right' as const,
-              ticks: { color: cssVar('--chart-tick'), font: { size: 11 }, callback: (val: any) => `$${Number(val).toLocaleString()}` },
+              ticks: { color: cssVar('--chart-tick'), font: { size: 11 }, callback: (val: any) => `${store.currencySymbol()}${Number(val).toLocaleString()}` },
               grid: { drawOnChartArea: false },
-              title: { display: true, text: `${singleAssetInfo.value.ticker} Price (USD)`, color: cssVar('--chart-tick'), font: { size: 11 } },
+              title: { display: true, text: `${singleAssetInfo.value.ticker} Price (${store.displayCurrency})`, color: cssVar('--chart-tick'), font: { size: 11 } },
             },
           }
         : {}),

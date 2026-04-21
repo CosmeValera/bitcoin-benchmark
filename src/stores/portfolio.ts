@@ -41,6 +41,9 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   const customStartDate = ref('2020-01-01')
   const customEndDate = ref(new Date().toISOString().slice(0, 10))
   const showDividendAdjusted = ref(false)
+  const displayCurrency = ref<'USD' | 'BTC' | 'sats' | 'EUR'>('USD')
+  const btcPrices = ref<Map<string, number>>(new Map())
+  const eurRate = ref<Map<string, number>>(new Map())
   const result = ref<PortfolioResult | null>(null)
   const loading = ref(false)
   const errors = ref<Map<string, string>>(new Map())
@@ -115,6 +118,15 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     timeRange.value = range
   }
 
+  function currencySymbol(): string {
+    switch (displayCurrency.value) {
+      case 'USD': return '$'
+      case 'BTC': return '₿'
+      case 'sats': return 'sats '
+      case 'EUR': return '€'
+    }
+  }
+
   async function runPortfolio() {
     if (!isValid.value) return
 
@@ -146,7 +158,23 @@ export const usePortfolioStore = defineStore('portfolio', () => {
       }
     })
 
-    await Promise.all(fetches)
+    // Fetch BTC + EUR rates for currency conversion
+    const btcFetch = fetchAssetPrices('BTC-USD', from, to)
+      .then((prices) => {
+        const map = new Map<string, number>()
+        for (const p of prices) map.set(p.date, p.price)
+        btcPrices.value = map
+      })
+      .catch(() => {})
+    const eurFetch = fetchAssetPrices('EURUSD=X', from, to)
+      .then((prices) => {
+        const map = new Map<string, number>()
+        for (const p of prices) map.set(p.date, p.price)
+        eurRate.value = map
+      })
+      .catch(() => {})
+
+    await Promise.all([...fetches, btcFetch, eurFetch])
 
     // Normalize weights so they sum to 100% internally
     const activeWeights = Object.entries(allocations.value).filter(([, w]) => w > 0)
@@ -330,6 +358,10 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     customStartDate,
     customEndDate,
     showDividendAdjusted,
+    displayCurrency,
+    btcPrices,
+    eurRate,
+    currencySymbol,
     result,
     loading,
     errors,

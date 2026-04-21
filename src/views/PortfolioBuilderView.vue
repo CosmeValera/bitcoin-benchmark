@@ -71,11 +71,32 @@ onMounted(() => {
             @update:custom-end="store.customEndDate = $event"
           />
         </div>
-        <label class="toggle-label" :class="{ disabled: !hasDividendAssets }">
-          <input type="checkbox" v-model="store.showDividendAdjusted" :disabled="!hasDividendAssets" />
-          Include dividend income
-          <span v-if="!hasDividendAssets" class="toggle-hint">(add STRK, STRD, STRF, or STRC with weight > 0)</span>
-        </label>
+      </div>
+
+      <div class="panel-divider"></div>
+
+      <div class="panel-section">
+        <div class="options-row">
+          <div class="option-group">
+            <span class="option-label">Currency</span>
+            <div class="currency-buttons">
+              <button
+                v-for="c in (['USD', 'EUR', 'BTC', 'sats'] as const)"
+                :key="c"
+                class="pill-btn"
+                :class="{ active: store.displayCurrency === c }"
+                @click="store.displayCurrency = c"
+              >
+                {{ c }}
+              </button>
+            </div>
+          </div>
+          <label class="toggle-label" :class="{ disabled: !hasDividendAssets }">
+            <input type="checkbox" v-model="store.showDividendAdjusted" :disabled="!hasDividendAssets" />
+            Include dividend income
+            <span v-if="!hasDividendAssets" class="toggle-hint">(add STRK, STRD, STRF, or STRC with weight > 0)</span>
+          </label>
+        </div>
       </div>
 
       <div class="action-row">
@@ -195,6 +216,55 @@ onMounted(() => {
   gap: 1rem;
 }
 
+.options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.option-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.option-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.currency-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.pill-btn {
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0.3rem 0.6rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pill-btn:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+.pill-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 .toggle-label {
   display: flex;
   align-items: center;
@@ -202,7 +272,6 @@ onMounted(() => {
   font-size: 0.78rem;
   color: var(--text-muted);
   cursor: pointer;
-  margin-top: 0.5rem;
 }
 
 .toggle-label.disabled {
