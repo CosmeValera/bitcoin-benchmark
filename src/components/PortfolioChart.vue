@@ -18,6 +18,10 @@ import { useExport } from '@/composables/useExport'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
+// Price lookup for tooltip: asset name → array of prices aligned to chart labels
+// Updated each time chartData recomputes; read by the crosshair plugin via closure
+let priceLookup: Record<string, (number | null)[]> = {}
+
 // Crosshair plugin (same as ComparisonChart)
 const portfolioCrosshairPlugin = {
   id: 'portfolioCrosshair',
@@ -94,34 +98,36 @@ const portfolioCrosshairPlugin = {
         const label = chart.data.labels[dataIndex] || ''
         let html = `<div class="crosshair-date">${label}</div>`
         // Detect single-asset mode by presence of §price dataset
-        let priceVal: number | null = null
         const isSingle = chart.data.datasets.some((d: any) => d.label?.endsWith(' §price'))
         const rows: { label: string; color: string; val: number | null; isPortfolio: boolean; weightPct?: number; waiting: boolean }[] = []
         for (const ds of chart.data.datasets) {
           const val = ds.data[dataIndex]
-          if (ds.label?.endsWith(' §price')) {
-            priceVal = val
-            continue
-          }
+          if (ds.label?.endsWith(' §price')) continue
           const isPortfolio = ds.label === 'Portfolio' || isSingle
-          // Show all assets: available ones with their value, unavailable as "Waiting"
           if (isPortfolio && val == null) continue
           rows.push({ label: ds.label, color: ds.borderColor, val, isPortfolio, weightPct: ds.weightPct, waiting: val == null })
         }
-        // Portfolio/main asset first, then rest sorted by value descending
         const portfolio = rows.filter(r => r.isPortfolio)
         const rest = rows.filter(r => !r.isPortfolio).sort((a, b) => {
           if (a.waiting !== b.waiting) return a.waiting ? 1 : -1
           return (b.val ?? 0) - (a.val ?? 0)
         })
-        for (const r of portfolio) {
+        // Helper: format price + return for a row
+        // Single-asset: bold price, pct in parens. Multi-asset: bold pct, price in parens.
+        const fmtRow = (r: typeof rows[0]) => {
           const sign = (r.val ?? 0) >= 0 ? '+' : ''
-          if (priceVal != null) {
-            const fmt = priceVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-            html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: <strong>$${fmt}</strong> (${sign}${(r.val ?? 0).toFixed(1)}%)</div>`
-          } else {
-            html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: <strong>${sign}${(r.val ?? 0).toFixed(1)}%</strong></div>`
+          const pct = `${sign}${(r.val ?? 0).toFixed(1)}%`
+          const price = priceLookup[r.label]?.[dataIndex]
+          if (price != null) {
+            const fmt = price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            return isSingle
+              ? `<strong>$${fmt}</strong> (${pct})`
+              : `<strong>${pct}</strong> ($${fmt})`
           }
+          return `<strong>${pct}</strong>`
+        }
+        for (const r of portfolio) {
+          html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${r.label}: ${fmtRow(r)}</div>`
         }
         if (portfolio.length && rest.length) {
           html += `<div class="crosshair-separator"></div>`
@@ -131,8 +137,7 @@ const portfolioCrosshairPlugin = {
           if (r.waiting) {
             html += `<div class="crosshair-row crosshair-waiting"><span class="crosshair-dot" style="background:${r.color}"></span>${weight}${r.label}: <strong>Waiting</strong></div>`
           } else {
-            const sign = (r.val ?? 0) >= 0 ? '+' : ''
-            html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${weight}${r.label}: <strong>${sign}${(r.val ?? 0).toFixed(1)}%</strong></div>`
+            html += `<div class="crosshair-row"><span class="crosshair-dot" style="background:${r.color}"></span>${weight}${r.label}: ${fmtRow(r)}</div>`
           }
         }
         cardEl.innerHTML = html
@@ -281,6 +286,16 @@ const chartData = computed(() => {
     blendedData = labels.map((d) => dateToBlend.get(d) ?? null)
   }
 
+  // Build price lookup for tooltip (all assets, keyed by label aligned to chart labels)
+  const lookup: Record<string, (number | null)[]> = {}
+  for (const { asset, prices } of assetData) {
+    const dateToPrice = new Map<string, number>()
+    for (const p of prices) dateToPrice.set(p.date, p.price)
+    let last: number | null = null
+    lookup[asset.name] = labels.map(d => { const v = dateToPrice.get(d); if (v != null) last = v; return last })
+  }
+  priceLookup = lookup
+
   // Single-asset mode: show asset name & color instead of "Portfolio", add price axis
   const singleAsset = singleAssetInfo.value ? assetData[0] : null
 
@@ -300,13 +315,10 @@ const chartData = computed(() => {
   const datasets: any[] = [portfolioDataset]
 
   if (singleAsset) {
-    // Hidden price dataset for tooltip + right Y-axis
-    const dateToPrice = new Map<string, number>()
-    for (const p of singleAsset.prices) dateToPrice.set(p.date, p.price)
-    let last: number | null = null
+    // Hidden price dataset for right Y-axis scale
     datasets.push({
       label: `${singleAsset.asset.name} §price`,
-      data: labels.map(d => { const v = dateToPrice.get(d); if (v != null) last = v; return last }),
+      data: lookup[singleAsset.asset.name],
       borderColor: 'transparent', backgroundColor: 'transparent',
       borderWidth: 0, pointRadius: 0, pointHoverRadius: 0,
       spanGaps: true, yAxisID: 'price',
