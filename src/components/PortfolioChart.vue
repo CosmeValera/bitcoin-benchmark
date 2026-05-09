@@ -15,6 +15,7 @@ import {
 import { usePortfolioStore } from '@/stores/portfolio'
 import { useTheme } from '@/composables/useTheme'
 import { useExport } from '@/composables/useExport'
+import { normalizedAdjustedReturns, type DisplayCurrency } from '@/composables/useReturnAdjustments'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
@@ -210,20 +211,18 @@ const chartData = computed(() => {
   // Also build per-asset date→return maps for dividend-adjusted blend
   const total = store.totalWeight || 1
   const assetDateMaps: { id: string; dateToReturn: Map<string, number> }[] = []
-  const assetDatasets = assetData.map(({ asset, prices, normalizedReturns }) => {
+  const assetDatasets = assetData.map(({ asset, prices }) => {
     const dateToReturn = new Map<string, number>()
-    const startDate = prices.length > 0 ? new Date(prices[0].date) : new Date()
-    const startPrice = prices.length > 0 ? prices[0].price : 1
-    const hasDividend = store.showDividendAdjusted && asset.dividendRate && asset.parValue
+    const adjustedReturns = normalizedAdjustedReturns(
+      asset,
+      prices,
+      store.displayCurrency as DisplayCurrency,
+      store.btcPrices,
+      store.eurRate,
+      store.showDividendAdjusted,
+    )
     for (let i = 0; i < prices.length; i++) {
-      let ret = normalizedReturns[i]
-      if (hasDividend) {
-        const dayDate = new Date(prices[i].date)
-        const years = (dayDate.getTime() - startDate.getTime()) / (365.25 * 86400000)
-        const divAccrued = asset.dividendRate! * asset.parValue! * years
-        ret += (divAccrued / startPrice) * 100
-      }
-      dateToReturn.set(prices[i].date, ret)
+      dateToReturn.set(prices[i].date, adjustedReturns[i])
     }
     assetDateMaps.push({ id: asset.id, dateToReturn })
     let lastVal: number | null = null
@@ -253,45 +252,32 @@ const chartData = computed(() => {
   })
 
   // Blended portfolio line (thick, accent color)
-  // When dividends are enabled, recompute blend from dividend-adjusted returns
-  let blendedData: (number | null)[]
-  if (store.showDividendAdjusted) {
-    // Normalize weights
-    const activeWeights = Object.entries(store.allocations).filter(([, w]) => w > 0)
-    const rawTotal = activeWeights.reduce((s, [, w]) => s + w, 0)
-    const normalizedWeights: Record<string, number> = {}
-    for (const [id, w] of activeWeights) {
-      normalizedWeights[id] = (w / rawTotal) * 100
-    }
-    // For each label date, blend using last known dividend-adjusted return
-    const lastKnown = new Map<string, number>()
-    // We need all dates (not just sampled labels) to carry forward correctly
-    // Use the blendedReturns dates as the full date list
-    const allDates = blendedReturns.map((br) => br.date)
-    const labelSet = new Set(labels)
-    const blendedMap = new Map<string, number>()
-    for (const date of allDates) {
-      for (const { id, dateToReturn } of assetDateMaps) {
-        const ret = dateToReturn.get(date)
-        if (ret != null) lastKnown.set(id, ret)
-      }
-      if (!labelSet.has(date)) continue
-      let weightedReturn = 0
-      for (const { id } of assetDateMaps) {
-        const ret = lastKnown.get(id) ?? 0
-        const weight = normalizedWeights[id] ?? 0
-        weightedReturn += (ret * weight) / 100
-      }
-      blendedMap.set(date, weightedReturn)
-    }
-    blendedData = labels.map((d) => blendedMap.get(d) ?? null)
-  } else {
-    const dateToBlend = new Map<string, number>()
-    for (const br of blendedReturns) {
-      dateToBlend.set(br.date, br.value)
-    }
-    blendedData = labels.map((d) => dateToBlend.get(d) ?? null)
+  const activeWeights = Object.entries(store.allocations).filter(([, w]) => w > 0)
+  const rawTotal = activeWeights.reduce((s, [, w]) => s + w, 0)
+  const normalizedWeights: Record<string, number> = {}
+  for (const [id, w] of activeWeights) {
+    normalizedWeights[id] = (w / rawTotal) * 100
   }
+
+  const lastKnown = new Map<string, number>()
+  const allDates = blendedReturns.map((br) => br.date)
+  const labelSet = new Set(labels)
+  const blendedMap = new Map<string, number>()
+  for (const date of allDates) {
+    for (const { id, dateToReturn } of assetDateMaps) {
+      const ret = dateToReturn.get(date)
+      if (ret != null) lastKnown.set(id, ret)
+    }
+    if (!labelSet.has(date)) continue
+    let weightedReturn = 0
+    for (const { id } of assetDateMaps) {
+      const ret = lastKnown.get(id) ?? 0
+      const weight = normalizedWeights[id] ?? 0
+      weightedReturn += (ret * weight) / 100
+    }
+    blendedMap.set(date, weightedReturn)
+  }
+  const blendedData = labels.map((d) => blendedMap.get(d) ?? null)
 
   // Build price lookup for tooltip (converted to display currency, with carry-forward rates)
   const currency = store.displayCurrency

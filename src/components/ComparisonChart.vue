@@ -15,6 +15,7 @@ import {
 import { useComparisonStore } from '@/stores/comparison'
 import { useTheme } from '@/composables/useTheme'
 import { useExport } from '@/composables/useExport'
+import { normalizedAdjustedReturns, type DisplayCurrency } from '@/composables/useReturnAdjustments'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
@@ -217,22 +218,20 @@ const chartData = computed(() => {
   priceLookup = lookup
   priceSymbol = store.currencySymbol()
 
-  const datasets = store.assetsData.map(({ asset, prices, normalizedReturns }) => {
+  const datasets = store.assetsData.map(({ asset, prices }) => {
     // Map date → normalized return for this asset, optionally adjusted for dividends
     const dateToReturn = new Map<string, number>()
-    const startDate = prices.length > 0 ? new Date(prices[0].date) : new Date()
-    const startPrice = prices.length > 0 ? prices[0].price : 1
-    const hasDividend = store.showDividendAdjusted && asset.dividendRate && asset.parValue
+    const adjustedReturns = normalizedAdjustedReturns(
+      asset,
+      prices,
+      store.displayCurrency as DisplayCurrency,
+      store.btcPrices,
+      store.eurRate,
+      store.showDividendAdjusted,
+    )
 
     for (let i = 0; i < prices.length; i++) {
-      let ret = normalizedReturns[i]
-      if (hasDividend) {
-        const dayDate = new Date(prices[i].date)
-        const years = (dayDate.getTime() - startDate.getTime()) / (365.25 * 86400000)
-        const divAccrued = asset.dividendRate! * asset.parValue! * years
-        ret += (divAccrued / startPrice) * 100
-      }
-      dateToReturn.set(prices[i].date, ret)
+      dateToReturn.set(prices[i].date, adjustedReturns[i])
     }
 
     // Produce data aligned to the shared label dates;

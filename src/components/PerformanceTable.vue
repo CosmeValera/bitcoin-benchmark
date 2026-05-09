@@ -4,6 +4,7 @@ import { useComparisonStore } from '@/stores/comparison'
 import { useExport } from '@/composables/useExport'
 import Sparkline from '@/components/Sparkline.vue'
 import type { PerformanceMetrics } from '@/types'
+import { normalizedAdjustedReturns, type DisplayCurrency } from '@/composables/useReturnAdjustments'
 
 const store = useComparisonStore()
 const { exportCsv } = useExport()
@@ -76,7 +77,16 @@ function fmtHoldings(n: number | undefined): string {
 
 function sparklineData(m: PerformanceMetrics): number[] {
   const ad = store.assetsData.find((d) => d.asset.id === m.asset.id)
-  return ad ? ad.normalizedReturns : []
+  return ad
+    ? normalizedAdjustedReturns(
+        ad.asset,
+        ad.prices,
+        store.displayCurrency as DisplayCurrency,
+        store.btcPrices,
+        store.eurRate,
+        store.showDividendAdjusted,
+      )
+    : []
 }
 </script>
 

@@ -9,6 +9,11 @@ import {
   getDateForRange,
 } from '@/types'
 import { useMarketData } from '@/composables/useMarketData'
+import {
+  adjustedPricePoints,
+  normalizedAdjustedReturns,
+  type DisplayCurrency,
+} from '@/composables/useReturnAdjustments'
 
 // Rotating palette for custom assets
 const CUSTOM_COLORS = [
@@ -58,16 +63,23 @@ export const useComparisonStore = defineStore('comparison', () => {
       const allPrices = prices.map((p) => p.price)
       const startPrice = allPrices[0] ?? 0
       const currentPrice = allPrices[allPrices.length - 1] ?? 0
-      let totalReturn = startPrice > 0 ? ((currentPrice - startPrice) / startPrice) * 100 : 0
-
-      // Add cumulative dividend income if toggle is on
-      if (showDividendAdjusted.value && asset.dividendRate && asset.parValue && prices.length >= 2) {
-        const firstDate = new Date(prices[0].date)
-        const lastDate = new Date(prices[prices.length - 1].date)
-        const years = (lastDate.getTime() - firstDate.getTime()) / (365.25 * 86400000)
-        const dividendPerShare = asset.dividendRate * asset.parValue * years
-        totalReturn += (dividendPerShare / startPrice) * 100
-      }
+      const adjustedReturns = normalizedAdjustedReturns(
+        asset,
+        prices,
+        displayCurrency.value as DisplayCurrency,
+        btcPrices.value,
+        eurRate.value,
+        showDividendAdjusted.value,
+      )
+      const adjustedPrices = adjustedPricePoints(
+        asset,
+        prices,
+        displayCurrency.value as DisplayCurrency,
+        btcPrices.value,
+        eurRate.value,
+        showDividendAdjusted.value,
+      )
+      const totalReturn = adjustedReturns[adjustedReturns.length - 1] ?? 0
 
       return {
         asset,
@@ -76,7 +88,7 @@ export const useComparisonStore = defineStore('comparison', () => {
         startPrice,
         high: Math.max(...allPrices),
         low: Math.min(...allPrices),
-        volatility: calcVolatility(prices),
+        volatility: calcVolatility(adjustedPrices),
       }
     })
   })

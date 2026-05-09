@@ -9,6 +9,10 @@ import {
   getDateForRange,
 } from '@/types'
 import { useMarketData } from '@/composables/useMarketData'
+import {
+  normalizedAdjustedReturns,
+  type DisplayCurrency,
+} from '@/composables/useReturnAdjustments'
 
 // Rotating palette for custom assets
 const CUSTOM_COLORS = [
@@ -190,8 +194,16 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     const allDateSet = new Set<string>()
     for (const ad of assetResults) {
       const dateMap = new Map<string, number>()
+      const adjustedReturns = normalizedAdjustedReturns(
+        ad.asset,
+        ad.prices,
+        displayCurrency.value as DisplayCurrency,
+        btcPrices.value,
+        eurRate.value,
+        showDividendAdjusted.value,
+      )
       for (let i = 0; i < ad.prices.length; i++) {
-        dateMap.set(ad.prices[i].date, ad.normalizedReturns[i])
+        dateMap.set(ad.prices[i].date, adjustedReturns[i])
         allDateSet.add(ad.prices[i].date)
       }
       assetDateMaps.set(ad.asset.id, dateMap)
@@ -334,6 +346,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
       start: customStartDate.value,
       end: customEndDate.value,
       div: showDividendAdjusted.value,
+      currency: displayCurrency.value,
     }),
     () => {
       if (!autoRun.value || !hasRun.value) return
