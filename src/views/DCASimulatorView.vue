@@ -6,6 +6,7 @@ import ResultsSummary from '@/components/ResultsSummary.vue'
 import ProjectionInputPanel from '@/components/ProjectionInputPanel.vue'
 import ProjectionChart from '@/components/ProjectionChart.vue'
 import ProjectionSummary from '@/components/ProjectionSummary.vue'
+import DcaVsLumpSumGuide from '@/components/DcaVsLumpSumGuide.vue'
 import { useSimulationStore } from '@/stores/simulation'
 import { useProjectionStore } from '@/stores/projection'
 
@@ -76,6 +77,7 @@ watch(mode, (m) => {
         </div>
         <PriceChart />
         <ResultsSummary />
+        <DcaVsLumpSumGuide />
       </section>
     </template>
 
@@ -96,6 +98,7 @@ watch(mode, (m) => {
         </div>
         <ProjectionChart />
         <ProjectionSummary />
+        <DcaVsLumpSumGuide />
       </section>
     </template>
   </div>
