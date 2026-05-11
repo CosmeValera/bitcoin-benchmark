@@ -1,13 +1,22 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import { RouterView, RouterLink } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
 import { useBtcTicker } from '@/composables/useBtcTicker'
 
 const { theme, toggle } = useTheme()
-const { price, change24h } = useBtcTicker()
+const { priceUsd, priceEur, change24hUsd, change24hEur } = useBtcTicker()
+const tickerCurrency = ref<'USD' | 'EUR'>('USD')
+
+const price = computed(() => tickerCurrency.value === 'USD' ? priceUsd.value : priceEur.value)
+const change24h = computed(() => tickerCurrency.value === 'USD' ? change24hUsd.value : change24hEur.value)
+
+function toggleTickerCurrency() {
+  tickerCurrency.value = tickerCurrency.value === 'USD' ? 'EUR' : 'USD'
+}
 
 function formatPrice(p: number): string {
-  return p.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+  return p.toLocaleString('en-US', { style: 'currency', currency: tickerCurrency.value, maximumFractionDigits: 0 })
 }
 </script>
 
@@ -26,7 +35,14 @@ function formatPrice(p: number): string {
               <span class="ticker-label">LIVE</span>
               <span class="ticker-sep">·</span>
               <span class="ticker-label">BTC</span>
-              <a href="https://coinmarketcap.com/currencies/bitcoin/" target="_blank" rel="noopener" class="ticker-price">{{ formatPrice(price) }}</a>
+              <button
+                type="button"
+                class="ticker-price"
+                :title="`Switch to ${tickerCurrency === 'USD' ? 'EUR' : 'USD'}`"
+                @click="toggleTickerCurrency"
+              >
+                {{ formatPrice(price) }}
+              </button>
               <span
                 v-if="change24h != null"
                 class="ticker-change"
@@ -139,10 +155,15 @@ header {
 }
 
 .ticker-price {
+  background: none;
+  border: 0;
+  padding: 0;
   font-family: 'JetBrains Mono', monospace;
+  font-size: inherit;
   color: var(--text);
   font-weight: 700;
   text-decoration: none;
+  cursor: pointer;
   transition: color 0.15s;
 }
 
