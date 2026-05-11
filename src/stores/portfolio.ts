@@ -38,20 +38,51 @@ interface PortfolioShareState {
   customEndDate: string
 }
 
+interface PortfolioPersistedState extends PortfolioShareState {
+  showDividendAdjusted: boolean
+  displayCurrency: 'USD' | 'BTC' | 'sats' | 'EUR'
+}
+
+const PORTFOLIO_STORAGE_KEY = 'portfolioBuilderState'
+const VALID_TIME_RANGES: TimeRange[] = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '5Y', 'ALL', 'CUSTOM']
+const VALID_CURRENCIES = ['USD', 'BTC', 'sats', 'EUR'] as const
+
+function readPortfolioState(): Partial<PortfolioPersistedState> {
+  try {
+    const raw = localStorage.getItem(PORTFOLIO_STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
 export const usePortfolioStore = defineStore('portfolio', () => {
   const { fetchAssetPrices, normalizeReturns, calcVolatility } = useMarketData()
+
+  const persisted = readPortfolioState()
 
   // State - default portfolio: BTC 100%
   const initialWeights: Record<string, number> = {}
   for (const a of ASSETS) initialWeights[a.id] = 0
   initialWeights['btc'] = 100
+  if (persisted.allocations && typeof persisted.allocations === 'object') {
+    for (const [id, weight] of Object.entries(persisted.allocations)) {
+      if (typeof weight === 'number' && isFinite(weight)) initialWeights[id] = Math.max(0, weight)
+    }
+  }
   const allocations = ref<Record<string, number>>(initialWeights)
   const customAssets = ref<Asset[]>([])
-  const timeRange = ref<TimeRange>('1Y')
-  const customStartDate = ref('2020-01-01')
-  const customEndDate = ref(new Date().toISOString().slice(0, 10))
-  const showDividendAdjusted = ref(false)
-  const displayCurrency = ref<'USD' | 'BTC' | 'sats' | 'EUR'>('USD')
+  const timeRange = ref<TimeRange>(
+    persisted.timeRange && VALID_TIME_RANGES.includes(persisted.timeRange) ? persisted.timeRange : '1Y',
+  )
+  const customStartDate = ref(typeof persisted.customStartDate === 'string' ? persisted.customStartDate : '2020-01-01')
+  const customEndDate = ref(typeof persisted.customEndDate === 'string' ? persisted.customEndDate : new Date().toISOString().slice(0, 10))
+  const showDividendAdjusted = ref(Boolean(persisted.showDividendAdjusted))
+  const displayCurrency = ref<'USD' | 'BTC' | 'sats' | 'EUR'>(
+    persisted.displayCurrency && VALID_CURRENCIES.includes(persisted.displayCurrency) ? persisted.displayCurrency : 'USD',
+  )
   const btcPrices = ref<Map<string, number>>(new Map())
   const eurRate = ref<Map<string, number>>(new Map())
   const result = ref<PortfolioResult | null>(null)
@@ -60,6 +91,19 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   const hasRun = ref(false)
   const lastShareState = ref<PortfolioShareState | null>(null)
   const autoRun = ref(localStorage.getItem('autoRunPortfolio') !== 'false')
+
+  if (Array.isArray(persisted.customTickers)) {
+    for (const ticker of persisted.customTickers) {
+      if (typeof ticker === 'string') addCustomAsset(ticker)
+    }
+    if (persisted.allocations && typeof persisted.allocations === 'object') {
+      const next = { ...allocations.value }
+      for (const [id, weight] of Object.entries(persisted.allocations)) {
+        if (typeof weight === 'number' && isFinite(weight)) next[id] = Math.max(0, weight)
+      }
+      allocations.value = next
+    }
+  }
 
   // Computed
   const totalWeight = computed(() => {
@@ -358,8 +402,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
 
     const rangeParam = params.get('range') as TimeRange | null
     if (rangeParam) {
-      const validRanges: TimeRange[] = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '5Y', 'ALL', 'CUSTOM']
-      if (validRanges.includes(rangeParam)) timeRange.value = rangeParam
+      if (VALID_TIME_RANGES.includes(rangeParam)) timeRange.value = rangeParam
     }
     if (rangeParam === 'CUSTOM') {
       const from = params.get('from')
@@ -398,6 +441,22 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   watch(autoRun, (v) => {
     localStorage.setItem('autoRunPortfolio', String(v))
   })
+
+  watch(
+    () => ({
+      allocations: { ...allocations.value },
+      customTickers: customAssets.value.map((a) => a.ticker),
+      timeRange: timeRange.value,
+      customStartDate: customStartDate.value,
+      customEndDate: customEndDate.value,
+      showDividendAdjusted: showDividendAdjusted.value,
+      displayCurrency: displayCurrency.value,
+    }),
+    (state) => {
+      localStorage.setItem(PORTFOLIO_STORAGE_KEY, JSON.stringify(state))
+    },
+    { deep: true },
+  )
 
   return {
     allocations,

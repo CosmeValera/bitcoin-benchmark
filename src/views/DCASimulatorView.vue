@@ -10,7 +10,13 @@ import DcaVsLumpSumGuide from '@/components/DcaVsLumpSumGuide.vue'
 import { useSimulationStore } from '@/stores/simulation'
 import { useProjectionStore } from '@/stores/projection'
 
-const mode = ref<'historical' | 'projection'>('historical')
+const DCA_MODE_STORAGE_KEY = 'dcaSimulatorMode'
+
+function readInitialMode(): 'historical' | 'projection' {
+  return localStorage.getItem(DCA_MODE_STORAGE_KEY) === 'projection' ? 'projection' : 'historical'
+}
+
+const mode = ref<'historical' | 'projection'>(readInitialMode())
 const simStore = useSimulationStore()
 const projStore = useProjectionStore()
 
@@ -19,11 +25,17 @@ const simRanOnce = ref(false)
 const projRanOnce = ref(false)
 
 onMounted(() => {
-  simStore.runSimulation()
-  simRanOnce.value = true
+  if (mode.value === 'historical') {
+    simStore.runSimulation()
+    simRanOnce.value = true
+  } else {
+    projStore.runProjection()
+    projRanOnce.value = true
+  }
 })
 
 watch(mode, (m) => {
+  localStorage.setItem(DCA_MODE_STORAGE_KEY, m)
   if (m === 'historical' && !simRanOnce.value) {
     simStore.runSimulation()
     simRanOnce.value = true

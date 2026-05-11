@@ -21,25 +21,66 @@ const CUSTOM_COLORS = [
   '#14b8a6', '#eab308', '#6366f1', '#d946ef', '#0ea5e9',
 ]
 
+interface ComparisonPersistedState {
+  selectedIds: string[]
+  customTickers: string[]
+  timeRange: TimeRange
+  customStartDate: string
+  customEndDate: string
+  showDividendAdjusted: boolean
+  showDrawdown: boolean
+  displayCurrency: 'USD' | 'BTC' | 'sats' | 'EUR'
+}
+
+const COMPARISON_STORAGE_KEY = 'benchmarkState'
+const VALID_TIME_RANGES: TimeRange[] = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '5Y', 'ALL', 'CUSTOM']
+const VALID_CURRENCIES = ['USD', 'BTC', 'sats', 'EUR'] as const
+
+function readComparisonState(): Partial<ComparisonPersistedState> {
+  try {
+    const raw = localStorage.getItem(COMPARISON_STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
 export const useComparisonStore = defineStore('comparison', () => {
   const { fetchAssetPrices, normalizeReturns, calcVolatility } = useMarketData()
+  const persisted = readComparisonState()
 
   // State
-  const selectedIds = ref<Set<string>>(new Set(['btc']))
+  const selectedIds = ref<Set<string>>(
+    new Set(Array.isArray(persisted.selectedIds) && persisted.selectedIds.length > 0 ? persisted.selectedIds : ['btc']),
+  )
   const customAssets = ref<Asset[]>([])
-  const timeRange = ref<TimeRange>('1Y')
-  const customStartDate = ref('2020-01-01')
-  const customEndDate = ref(new Date().toISOString().slice(0, 10))
+  const timeRange = ref<TimeRange>(
+    persisted.timeRange && VALID_TIME_RANGES.includes(persisted.timeRange) ? persisted.timeRange : '1Y',
+  )
+  const customStartDate = ref(typeof persisted.customStartDate === 'string' ? persisted.customStartDate : '2020-01-01')
+  const customEndDate = ref(typeof persisted.customEndDate === 'string' ? persisted.customEndDate : new Date().toISOString().slice(0, 10))
   const assetsData = ref<AssetData[]>([])
   const loading = ref(false)
   const errors = ref<Map<string, string>>(new Map())
   const hasRun = ref(false)
-  const showDividendAdjusted = ref(false)
-  const showDrawdown = ref(false)
+  const showDividendAdjusted = ref(Boolean(persisted.showDividendAdjusted))
+  const showDrawdown = ref(Boolean(persisted.showDrawdown))
   const autoRun = ref(localStorage.getItem('autoRun') !== 'false')
-  const displayCurrency = ref<'USD' | 'BTC' | 'sats' | 'EUR'>('USD')
+  const displayCurrency = ref<'USD' | 'BTC' | 'sats' | 'EUR'>(
+    persisted.displayCurrency && VALID_CURRENCIES.includes(persisted.displayCurrency) ? persisted.displayCurrency : 'USD',
+  )
   const btcPrices = ref<Map<string, number>>(new Map()) // date → BTC price in USD
   const eurRate = ref<Map<string, number>>(new Map()) // date → EUR per USD
+  if (Array.isArray(persisted.customTickers)) {
+    for (const ticker of persisted.customTickers) {
+      if (typeof ticker === 'string') addCustomAsset(ticker)
+    }
+    if (Array.isArray(persisted.selectedIds) && persisted.selectedIds.length > 0) {
+      selectedIds.value = new Set(persisted.selectedIds)
+    }
+  }
 
   // Computed
   const allAssets = computed(() => [...ASSETS, ...customAssets.value])
@@ -159,10 +200,7 @@ export const useComparisonStore = defineStore('comparison', () => {
       const ids = assetsParam.split(',').filter((id) => allAssets.value.some((a) => a.id === id))
       if (ids.length > 0) selectedIds.value = new Set(ids)
     }
-    if (rangeParam) {
-      const validRanges: TimeRange[] = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '5Y', 'ALL', 'CUSTOM']
-      if (validRanges.includes(rangeParam)) timeRange.value = rangeParam
-    }
+    if (rangeParam && VALID_TIME_RANGES.includes(rangeParam)) timeRange.value = rangeParam
     if (rangeParam === 'CUSTOM') {
       const from = params.get('from')
       const to = params.get('to')
@@ -305,6 +343,23 @@ export const useComparisonStore = defineStore('comparison', () => {
   watch(autoRun, (v) => {
     localStorage.setItem('autoRun', String(v))
   })
+
+  watch(
+    () => ({
+      selectedIds: [...selectedIds.value],
+      customTickers: customAssets.value.map((a) => a.ticker),
+      timeRange: timeRange.value,
+      customStartDate: customStartDate.value,
+      customEndDate: customEndDate.value,
+      showDividendAdjusted: showDividendAdjusted.value,
+      showDrawdown: showDrawdown.value,
+      displayCurrency: displayCurrency.value,
+    }),
+    (state) => {
+      localStorage.setItem(COMPARISON_STORAGE_KEY, JSON.stringify(state))
+    },
+    { deep: true },
+  )
 
   return {
     selectedIds,

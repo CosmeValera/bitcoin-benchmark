@@ -4,15 +4,40 @@ import { useBitcoinPrice } from '@/composables/useBitcoinPrice'
 import { useCalculator, type SimulationResult } from '@/composables/useCalculator'
 import { getDateForRange, type TimeRange } from '@/types'
 
+interface SimulationPersistedState {
+  monthlyInvestment: number
+  frequencyDays: number
+  timeRange: TimeRange
+  customStartDate: string
+  customEndDate: string
+}
+
+const SIMULATION_STORAGE_KEY = 'dcaHistoricalState'
+const VALID_TIME_RANGES: TimeRange[] = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '5Y', 'ALL', 'CUSTOM']
+
+function readSimulationState(): Partial<SimulationPersistedState> {
+  try {
+    const raw = localStorage.getItem(SIMULATION_STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
 export const useSimulationStore = defineStore('simulation', () => {
   const { prices, loading, error, fetchPrices } = useBitcoinPrice()
   const { simulate } = useCalculator()
+  const persisted = readSimulationState()
 
-  const monthlyInvestment = ref(100)
-  const frequencyDays = ref(30)
-  const timeRange = ref<TimeRange>('3Y')
-  const customStartDate = ref('2020-01-01')
-  const customEndDate = ref(new Date().toISOString().slice(0, 10))
+  const monthlyInvestment = ref(typeof persisted.monthlyInvestment === 'number' ? persisted.monthlyInvestment : 100)
+  const frequencyDays = ref(typeof persisted.frequencyDays === 'number' ? persisted.frequencyDays : 30)
+  const timeRange = ref<TimeRange>(
+    persisted.timeRange && VALID_TIME_RANGES.includes(persisted.timeRange) ? persisted.timeRange : '3Y',
+  )
+  const customStartDate = ref(typeof persisted.customStartDate === 'string' ? persisted.customStartDate : '2020-01-01')
+  const customEndDate = ref(typeof persisted.customEndDate === 'string' ? persisted.customEndDate : new Date().toISOString().slice(0, 10))
   const autoRun = ref(localStorage.getItem('autoRunSimulation') !== 'false')
   const result = ref<SimulationResult | null>(null)
   const hasRun = ref(false)
@@ -50,6 +75,20 @@ export const useSimulationStore = defineStore('simulation', () => {
   watch(autoRun, (v) => {
     localStorage.setItem('autoRunSimulation', String(v))
   })
+
+  watch(
+    () => ({
+      monthlyInvestment: monthlyInvestment.value,
+      frequencyDays: frequencyDays.value,
+      timeRange: timeRange.value,
+      customStartDate: customStartDate.value,
+      customEndDate: customEndDate.value,
+    }),
+    (state) => {
+      localStorage.setItem(SIMULATION_STORAGE_KEY, JSON.stringify(state))
+    },
+    { deep: true },
+  )
 
   let simAutoTimer: ReturnType<typeof setTimeout> | null = null
   watch(
