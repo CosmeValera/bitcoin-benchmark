@@ -25,7 +25,7 @@ export const useComparisonStore = defineStore('comparison', () => {
   const { fetchAssetPrices, normalizeReturns, calcVolatility } = useMarketData()
 
   // State
-  const selectedIds = ref<Set<string>>(new Set(['btc', 'mstr', 'spy']))
+  const selectedIds = ref<Set<string>>(new Set(['btc']))
   const customAssets = ref<Asset[]>([])
   const timeRange = ref<TimeRange>('1Y')
   const customStartDate = ref('2020-01-01')

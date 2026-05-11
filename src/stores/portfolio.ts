@@ -30,15 +30,21 @@ export interface PortfolioResult {
   sharpeRatio: number
 }
 
+interface PortfolioShareState {
+  allocations: Record<string, number>
+  customTickers: string[]
+  timeRange: TimeRange
+  customStartDate: string
+  customEndDate: string
+}
+
 export const usePortfolioStore = defineStore('portfolio', () => {
   const { fetchAssetPrices, normalizeReturns, calcVolatility } = useMarketData()
 
-  // State – default portfolio: BTC 30%, MSTR 20%, SPY 50%
+  // State - default portfolio: BTC 100%
   const initialWeights: Record<string, number> = {}
   for (const a of ASSETS) initialWeights[a.id] = 0
-  initialWeights['btc'] = 30
-  initialWeights['mstr'] = 20
-  initialWeights['spy'] = 50
+  initialWeights['btc'] = 100
   const allocations = ref<Record<string, number>>(initialWeights)
   const customAssets = ref<Asset[]>([])
   const timeRange = ref<TimeRange>('1Y')
@@ -52,6 +58,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   const loading = ref(false)
   const errors = ref<Map<string, string>>(new Map())
   const hasRun = ref(false)
+  const lastShareState = ref<PortfolioShareState | null>(null)
   const autoRun = ref(localStorage.getItem('autoRunPortfolio') !== 'false')
 
   // Computed
@@ -133,6 +140,14 @@ export const usePortfolioStore = defineStore('portfolio', () => {
 
   async function runPortfolio() {
     if (!isValid.value) return
+
+    const shareState: PortfolioShareState = {
+      allocations: { ...allocations.value },
+      customTickers: customAssets.value.map((a) => a.ticker),
+      timeRange: timeRange.value,
+      customStartDate: customStartDate.value,
+      customEndDate: customEndDate.value,
+    }
 
     loading.value = true
     errors.value = new Map()
@@ -277,24 +292,41 @@ export const usePortfolioStore = defineStore('portfolio', () => {
       sharpeRatio,
     }
     hasRun.value = true
+    lastShareState.value = shareState
     loading.value = false
+
+    if (rerunAfterCurrentRun && autoRun.value) {
+      rerunAfterCurrentRun = false
+      if (autoRunTimer) clearTimeout(autoRunTimer)
+      autoRunTimer = setTimeout(() => {
+        runPortfolio()
+      }, 800)
+    }
   }
 
   function toShareUrl(): string {
     const url = new URL(window.location.href.split('?')[0])
+    const shareState = lastShareState.value ?? {
+      allocations: allocations.value,
+      customTickers: customAssets.value.map((a) => a.ticker),
+      timeRange: timeRange.value,
+      customStartDate: customStartDate.value,
+      customEndDate: customEndDate.value,
+    }
+
     // Encode active weights
-    const active = Object.entries(allocations.value).filter(([, w]) => w > 0)
+    const active = Object.entries(shareState.allocations).filter(([, w]) => w > 0)
     if (active.length > 0) {
       url.searchParams.set('w', active.map(([id, w]) => `${id}:${w}`).join(','))
     }
     // Encode custom asset tickers so receiver can recreate them
-    if (customAssets.value.length > 0) {
-      url.searchParams.set('custom', customAssets.value.map((a) => a.ticker).join(','))
+    if (shareState.customTickers.length > 0) {
+      url.searchParams.set('custom', shareState.customTickers.join(','))
     }
-    url.searchParams.set('range', timeRange.value)
-    if (timeRange.value === 'CUSTOM') {
-      url.searchParams.set('from', customStartDate.value)
-      url.searchParams.set('to', customEndDate.value)
+    url.searchParams.set('range', shareState.timeRange)
+    if (shareState.timeRange === 'CUSTOM') {
+      url.searchParams.set('from', shareState.customStartDate)
+      url.searchParams.set('to', shareState.customEndDate)
     }
     return url.toString()
   }
@@ -339,6 +371,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
 
   // Auto-run: debounced watcher
   let autoRunTimer: ReturnType<typeof setTimeout> | null = null
+  let rerunAfterCurrentRun = false
   watch(
     () => ({
       allocs: { ...allocations.value },
@@ -350,7 +383,10 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     }),
     () => {
       if (!autoRun.value || !hasRun.value) return
-      if (loading.value) return
+      if (loading.value) {
+        rerunAfterCurrentRun = true
+        return
+      }
       if (autoRunTimer) clearTimeout(autoRunTimer)
       autoRunTimer = setTimeout(() => {
         runPortfolio()

@@ -9,6 +9,7 @@ const { suggestions, searching, search, clear, validateTicker } = useTickerSearc
 
 const presets: { label: string; weights: Record<string, number> }[] = [
   { label: '100% BTC', weights: { btc: 100 } },
+  { label: 'BTC + MSTR + SPY', weights: { btc: 30, mstr: 20, spy: 50 } },
   { label: '60/40 BTC SPY', weights: { btc: 60, spy: 40 } },
   { label: 'BTC + MSTR', weights: { btc: 50, mstr: 50 } },
   { label: 'Treasury Mix', weights: { btc: 40, mstr: 30, metaplanet: 15, xxi: 15 } },
